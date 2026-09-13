@@ -1,0 +1,2312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ExamPro – Smart Quiz Management</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<!-- Supabase JS Client Library (async - won't block page) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer onerror="console.log('Supabase CDN not loaded - running offline')"></script>
+<!-- External Supabase API Config File -->
+<script src="config.js" defer onerror="console.log('config.js not found - using defaults')"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f8;color:#1a1f2e}
+
+/* ── LANDING (role picker) ─────────────────────── */
+#landing-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f0f2f8;padding:20px}
+.landing-box{width:100%;max-width:480px;text-align:center}
+.landing-logo{width:72px;height:72px;border-radius:20px;background:#1a1f2e;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:32px;color:#7fa4f0;box-shadow:0 8px 32px rgba(26,31,46,.18)}
+.landing-title{font-size:28px;font-weight:700;color:#1a1f2e;letter-spacing:-.5px}
+.landing-sub{font-size:14px;color:#9ca3af;margin-top:6px;margin-bottom:40px}
+.landing-cards{display:flex;gap:16px}
+.lcard{flex:1;background:#fff;border-radius:16px;border:.5px solid #e2e5ee;padding:28px 20px;cursor:pointer;text-align:center;transition:all .2s;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.lcard:hover{transform:translateY(-3px);box-shadow:0 8px 28px rgba(0,0,0,.11)}
+.lcard-icon{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:26px}
+.lcard-admin .lcard-icon{background:rgba(59,91,219,.1);color:#3b5bdb}
+.lcard-student .lcard-icon{background:rgba(29,158,117,.1);color:#1d9e75}
+.lcard-name{font-size:15px;font-weight:700;color:#1a1f2e;margin-bottom:5px}
+.lcard-desc{font-size:12px;color:#9ca3af;line-height:1.5}
+.lcard-arrow{margin-top:16px;font-size:18px;color:#d1d5db;transition:color .2s}
+.lcard:hover .lcard-arrow{color:#3b5bdb}
+.lcard-student:hover .lcard-arrow{color:#1d9e75}
+.lcard-teacher .lcard-icon{background:rgba(124,92,230,.1);color:#7c5ce6}
+.lcard-teacher:hover .lcard-arrow{color:#7c5ce6}
+
+/* ── LOGIN PAGES ────────────────────────────────── */
+#admin-login-page,#student-login-page,#teacher-login-page{display:none;min-height:100vh;align-items:stretch}
+.login-left{width:420px;flex-shrink:0;background:#1a1f2e;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 40px;position:relative;overflow:hidden}
+.login-left::before{content:'';position:absolute;width:320px;height:320px;border-radius:50%;background:rgba(99,130,220,.12);top:-80px;right:-80px}
+.login-left::after{content:'';position:absolute;width:200px;height:200px;border-radius:50%;background:rgba(29,158,117,.10);bottom:-40px;left:-40px}
+.ll-brand{position:relative;z-index:1;text-align:center;margin-bottom:32px}
+.ll-icon{width:64px;height:64px;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px}
+.ll-icon-admin{background:rgba(99,130,220,.2);border:1px solid rgba(99,130,220,.4);color:#7fa4f0}
+.ll-icon-student{background:rgba(29,158,117,.2);border:1px solid rgba(29,158,117,.4);color:#3ecfa0}
+.ll-icon-teacher{background:rgba(124,92,230,.2);border:1px solid rgba(124,92,230,.4);color:#a78bfa}
+.ll-name{font-size:26px;font-weight:700;color:#fff;letter-spacing:-.5px}
+.ll-sub{font-size:13px;color:#6b7a9a;margin-top:4px}
+.ll-info{position:relative;z-index:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:18px 20px;width:100%}
+.ll-info-title{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#5a6278;margin-bottom:10px}
+.ll-info-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px;color:#9aa3ba}
+.ll-info-row:last-child{margin-bottom:0}
+.ll-info-row i{font-size:14px;color:#7fa4f0;flex-shrink:0}
+.ll-info-row.student-color i{color:#3ecfa0}
+
+.login-right{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 32px;background:#f0f2f8}
+.login-form-box{width:100%;max-width:380px;background:#fff;border-radius:14px;border:.5px solid #e2e5ee;padding:36px 32px;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.lf-title{font-size:20px;font-weight:700;color:#1a1f2e;margin-bottom:4px}
+.lf-sub{font-size:13px;color:#9ca3af;margin-bottom:28px;line-height:1.5}
+.form-group{margin-bottom:18px}
+.form-label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px}
+.form-input{width:100%;padding:10px 14px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;font-family:inherit;color:#1a1f2e;background:#fff;outline:none;transition:border-color .15s,box-shadow .15s}
+.form-input:focus{border-color:#3b5bdb;box-shadow:0 0 0 3px rgba(59,91,219,.1)}
+.form-input.student-focus:focus{border-color:#1d9e75;box-shadow:0 0 0 3px rgba(29,158,117,.1)}
+.form-input.teacher-focus:focus{border-color:#7c5ce6;box-shadow:0 0 0 3px rgba(124,92,230,.1)}
+.form-input.ei{border-color:#ef4444}
+.form-error{font-size:11px;color:#ef4444;margin-top:5px;display:none}
+.btn-login{width:100%;padding:11px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:inherit;margin-top:6px;transition:background .15s,transform .1s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-login:active{transform:scale(.98)}
+.btn-login-admin{background:#3b5bdb;color:#fff}
+.btn-login-admin:hover{background:#3451c7}
+.btn-login-student{background:#1d9e75;color:#fff}
+.btn-login-student:hover{background:#178a64}
+.btn-login-teacher{background:#7c5ce6;color:#fff}
+.btn-login-teacher:hover{background:#6947d0}
+.back-link{display:flex;align-items:center;gap:5px;font-size:12px;color:#9ca3af;cursor:pointer;margin-top:18px;justify-content:center;transition:color .15s}
+.back-link:hover{color:#374151}
+
+.login-err{display:none;background:#fee2e2;border:.5px solid #fca5a5;border-radius:8px;padding:10px 14px;font-size:12px;color:#991b1b;margin-bottom:16px;align-items:center;gap:7px}
+
+/* ── APP SHELL ──────────────────────────────────── */
+#app-page{display:none;height:100vh}
+.app{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:225px;background:#1a1f2e;color:#c8cdd8;display:flex;flex-direction:column;flex-shrink:0}
+.sb-brand{padding:20px 18px 14px;border-bottom:.5px solid rgba(255,255,255,.08)}
+.sb-brand-name{font-size:15px;font-weight:700;color:#fff}
+.sb-brand-sub{font-size:11px;color:#7a8299;margin-top:2px}
+.sb-section{padding:14px 10px 4px;font-size:10px;letter-spacing:.08em;color:#5a6278;text-transform:uppercase}
+.sb-item{display:flex;align-items:center;gap:9px;padding:8px 14px;font-size:13px;cursor:pointer;border-radius:6px;margin:1px 6px;color:#9aa3ba;transition:background .15s;user-select:none}
+.sb-item:hover{background:rgba(255,255,255,.07);color:#dde1ec}
+.sb-item.active{background:rgba(99,130,220,.18);color:#7fa4f0}
+.sb-item i{font-size:15px;flex-shrink:0}
+.atag{display:inline-flex;align-items:center;gap:4px;font-size:9px;padding:2px 6px;border-radius:20px;margin-left:auto;flex-shrink:0}
+.atag-a{background:rgba(99,130,220,.15);color:#7fa4f0}
+.atag-s{background:rgba(29,158,117,.15);color:#3ecfa0}
+.sb-footer{margin-top:auto;padding:14px 18px;border-top:.5px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:9px}
+.sb-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.av-a{background:rgba(99,130,220,.25);color:#7fa4f0}
+.av-s{background:rgba(29,158,117,.25);color:#3ecfa0}
+.av-t{background:rgba(124,92,230,.25);color:#a78bfa}
+.sb-uname{font-size:12px;color:#dde1ec;font-weight:600}
+.sb-urole{font-size:10px;color:#5a6278;margin-top:1px}
+.btn-logout{display:flex;align-items:center;gap:5px;margin-left:auto;background:none;border:none;color:#5a6278;font-size:11px;cursor:pointer;padding:4px 6px;border-radius:5px;font-family:inherit;transition:color .15s,background .15s}
+.btn-logout:hover{color:#ef4444;background:rgba(239,68,68,.1)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.main-hdr{background:#fff;padding:15px 24px;border-bottom:.5px solid #e2e5ee;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.main-title{font-size:18px;font-weight:700;color:#1a1f2e}
+.role-pill{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:5px 14px;border-radius:20px}
+.pill-a{background:rgba(59,91,219,.1);color:#3b5bdb}
+.pill-s{background:rgba(29,158,117,.1);color:#1d9e75}
+.pill-t{background:rgba(124,92,230,.1);color:#7c5ce6}
+.pill-dot{width:7px;height:7px;border-radius:50%}
+.dot-a{background:#3b5bdb}
+.dot-s{background:#1d9e75}
+.dot-t{background:#7c5ce6}
+.notice{display:none;align-items:center;gap:8px;padding:9px 24px;font-size:12px;flex-shrink:0}
+.n-admin{background:#eef2ff;color:#3b5bdb;border-bottom:.5px solid #c7d2fe}
+.n-student{background:#ecfdf5;color:#1d9e75;border-bottom:.5px solid #a7f3d0}
+.n-danger{background:#fee2e2;color:#991b1b;border-bottom:.5px solid #fca5a5}
+.main-body{flex:1;overflow-y:auto;padding:20px 24px}
+
+/* ── COMPONENTS ─────────────────────────────────── */
+.card{background:#fff;border-radius:10px;border:.5px solid #e2e5ee;overflow:hidden}
+.card-hdr{padding:14px 20px;border-bottom:.5px solid #e2e5ee;display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:14px;font-weight:700;color:#1a1f2e}
+.btn{font-size:12px;padding:6px 14px;border-radius:7px;cursor:pointer;border:.5px solid #d1d5db;background:#fff;color:#374151;font-family:inherit;transition:background .15s}
+.btn:hover{background:#f9fafb}
+.btn-primary{background:#3b5bdb;color:#fff;border-color:#3b5bdb}
+.btn-primary:hover{background:#3451c7}
+.btn-red{background:#ef4444;color:#fff;border-color:#ef4444}
+.btn-red:hover{background:#dc2626}
+.btn-sm{font-size:11px;padding:5px 10px}
+.btn-icon{padding:5px 9px;font-size:13px}
+.table-wrap{overflow-x:auto;width:100%}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th{padding:10px 16px;font-size:11px;letter-spacing:.05em;color:#6b7280;text-align:left;text-transform:uppercase;border-bottom:.5px solid #e2e5ee;white-space:nowrap;font-weight:600}
+td{padding:12px 16px;font-size:13px;color:#1a1f2e;border-bottom:.5px solid #f0f2f7;vertical-align:middle;overflow:hidden;text-overflow:ellipsis}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f9fafb}
+.td-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.td-sub{font-size:11px;color:#9ca3af;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{display:inline-flex;align-items:center;font-size:11px;padding:2px 9px;border-radius:20px;font-weight:600;white-space:nowrap}
+.bm{background:#e8f0fe;color:#1a56db}
+.bh{background:#fef3c7;color:#92400e}
+.bs{background:#d1fae5;color:#065f46}
+.bq{background:#ede9fe;color:#5b21b6}
+.bp{background:#d1fae5;color:#065f46}
+.bf{background:#fee2e2;color:#991b1b}
+.ba{background:#d1fae5;color:#065f46}
+.bpend{background:#fef3c7;color:#92400e}
+.access-denied{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:52px 20px;text-align:center}
+.access-denied i{font-size:44px;color:#d1d5db;margin-bottom:14px}
+.access-denied-title{font-size:15px;font-weight:700;color:#374151;margin-bottom:6px}
+.access-denied-sub{font-size:13px;color:#9ca3af;max-width:280px;line-height:1.6}
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.metric{background:#fff;border-radius:10px;border:.5px solid #e2e5ee;padding:16px}
+.metric-lbl{font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.metric-val{font-size:24px;font-weight:700;color:#1a1f2e}
+.metric-sub{font-size:11px;color:#9ca3af;margin-top:3px}
+
+/* ── MODAL ──────────────────────────────────────── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:14px;width:600px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:fadeUp .25s ease}
+.modal-hdr{padding:18px 22px;border-bottom:.5px solid #e2e5ee;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.modal-title{font-size:15px;font-weight:700;color:#1a1f2e}
+.modal-close{background:none;border:none;cursor:pointer;color:#9ca3af;font-size:20px;padding:2px;line-height:1}
+.modal-close:hover{color:#374151}
+.modal-body{padding:22px;overflow-y:auto;flex:1}
+.modal-footer{padding:14px 22px;border-top:.5px solid #e2e5ee;display:flex;justify-content:flex-end;gap:8px;flex-shrink:0}
+.fi{margin-bottom:16px}
+.fi label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px}
+.fi input,.fi textarea,.fi select{width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;font-family:inherit;color:#1a1f2e;outline:none;transition:border-color .15s,box-shadow .15s;background:#fff}
+.fi input:focus,.fi textarea:focus,.fi select:focus{border-color:#3b5bdb;box-shadow:0 0 0 3px rgba(59,91,219,.1)}
+.fi textarea{resize:vertical;min-height:70px}
+.fi-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.q-block{background:#f9fafb;border:.5px solid #e2e5ee;border-radius:8px;padding:14px;margin-bottom:12px}
+.q-block-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.q-block-num{font-size:12px;font-weight:700;color:#3b5bdb}
+.choice-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.choice-row input[type=radio]{accent-color:#3b5bdb;width:15px;height:15px;flex-shrink:0}
+.choice-row input[type=text]{flex:1}
+.add-choice-btn{font-size:11px;color:#3b5bdb;background:none;border:none;cursor:pointer;padding:2px 0;font-family:inherit}
+.add-choice-btn:hover{text-decoration:underline}
+
+/* ── EXAM CARDS ─────────────────────────────────── */
+.exam-cards-list{display:flex;flex-direction:column;gap:12px}
+.exam-card-item{background:#fff;border-radius:10px;border:.5px solid #e2e5ee;padding:18px 20px}
+.ec-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.ec-title{font-size:14px;font-weight:700;color:#1a1f2e}
+.ec-desc{font-size:12px;color:#9ca3af;margin-top:3px}
+.ec-stats{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.ec-stat{font-size:12px;color:#6b7280;display:flex;align-items:center;gap:5px}
+.start-btn{background:#1d9e75;color:#fff;border:none;font-size:12px;padding:7px 16px;border-radius:7px;cursor:pointer;font-family:inherit;font-weight:600;white-space:nowrap;transition:background .15s}
+.start-btn:hover{background:#178a64}
+
+/* ── EXAM TAKING SCREEN ──────────────────────────── */
+#exam-screen{display:none;position:fixed;inset:0;background:#f0f2f8;z-index:900;overflow-y:auto}
+.exam-topbar{background:#1a1f2e;padding:14px 28px;display:flex;align-items:center;justify-content:space-between}
+.exam-topbar-title{font-size:14px;font-weight:700;color:#fff}
+.exam-topbar-student{font-size:12px;color:#7a8299}
+.exam-timer{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#7fa4f0;background:rgba(99,130,220,.15);padding:6px 14px;border-radius:20px}
+.exam-progress-bar{height:4px;background:#e2e5ee}
+.exam-progress-fill{height:4px;background:#3b5bdb;transition:width .3s}
+.exam-content{max-width:700px;margin:0 auto;padding:28px 20px}
+.exam-q-card{background:#fff;border-radius:12px;border:.5px solid #e2e5ee;padding:24px;margin-bottom:18px}
+.exam-q-num{font-size:11px;font-weight:700;color:#3b5bdb;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.exam-q-text{font-size:15px;font-weight:600;color:#1a1f2e;line-height:1.5;margin-bottom:18px}
+.choice-opt{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:8px;border:1.5px solid #e2e5ee;margin-bottom:8px;cursor:pointer;transition:all .15s;user-select:none}
+.choice-opt:hover{border-color:#3b5bdb;background:#f0f4ff}
+.choice-opt.selected{border-color:#3b5bdb;background:#eef2ff}
+.choice-opt input[type=radio]{accent-color:#3b5bdb;width:16px;height:16px;flex-shrink:0}
+.choice-opt label{font-size:13px;color:#374151;cursor:pointer;flex:1}
+.exam-nav{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+.exam-submit-btn{background:#1d9e75;color:#fff;border:none;font-size:13px;font-weight:600;padding:10px 24px;border-radius:8px;cursor:pointer;font-family:inherit;transition:background .15s}
+.exam-submit-btn:hover{background:#178a64}
+
+/* ── RESULT SCREEN ───────────────────────────────── */
+#result-screen{display:none;position:fixed;inset:0;background:#f0f2f8;z-index:910;overflow-y:auto}
+.result-box{max-width:500px;margin:60px auto;background:#fff;border-radius:16px;border:.5px solid #e2e5ee;padding:40px;text-align:center}
+.result-icon{font-size:52px;margin-bottom:16px}
+.result-title{font-size:22px;font-weight:700;color:#1a1f2e;margin-bottom:6px}
+.result-sub{font-size:14px;color:#9ca3af;margin-bottom:28px}
+.result-score{font-size:48px;font-weight:700;margin-bottom:4px}
+.result-score.pass{color:#1d9e75}
+.result-score.fail{color:#ef4444}
+.result-status{font-size:14px;font-weight:600;padding:4px 18px;border-radius:20px;display:inline-block;margin-bottom:24px}
+.result-status.pass{background:#d1fae5;color:#065f46}
+.result-status.fail{background:#fee2e2;color:#991b1b}
+.result-details{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px;text-align:left}
+.rd-item{background:#f9fafb;border-radius:8px;padding:12px 14px}
+.rd-lbl{font-size:11px;color:#9ca3af;margin-bottom:4px}
+.rd-val{font-size:14px;font-weight:600;color:#1a1f2e}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  LANDING — Choose Role                      -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="landing-page">
+  <div class="landing-box">
+    <div class="landing-logo"><i class="ti ti-school"></i></div>
+    <div class="landing-title">ExamPro</div>
+    <div class="landing-sub">Smart Quiz Management System — Who are you?</div>
+    <div class="landing-cards">
+      <div class="lcard lcard-admin" onclick="showAdminLogin()">
+        <div class="lcard-icon"><i class="ti ti-shield-check"></i></div>
+        <div class="lcard-name">Admin</div>
+        <div class="lcard-desc">Create and manage exams, quizzes, and the question bank</div>
+        <div class="lcard-arrow"><i class="ti ti-arrow-right"></i></div>
+      </div>
+      <div class="lcard lcard-student" onclick="showStudentLogin()">
+        <div class="lcard-icon"><i class="ti ti-user-graduate"></i></div>
+        <div class="lcard-name">Student</div>
+        <div class="lcard-desc">Enter your name and take your assigned exams</div>
+        <div class="lcard-arrow"><i class="ti ti-arrow-right"></i></div>
+      </div>
+      <div class="lcard lcard-teacher" onclick="showTeacherLogin()">
+        <div class="lcard-icon"><i class="ti ti-chalkboard"></i></div>
+        <div class="lcard-name">Teacher</div>
+        <div class="lcard-desc">Create exams, manage questions, and view class performance</div>
+        <div class="lcard-arrow"><i class="ti ti-arrow-right"></i></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  ADMIN LOGIN — Username + Password          -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="admin-login-page" style="display:none;min-height:100vh;align-items:stretch">
+  <div class="login-left">
+    <div class="ll-brand">
+      <div class="ll-icon ll-icon-admin"><i class="ti ti-shield-check"></i></div>
+      <div class="ll-name">Admin Login</div>
+      <div class="ll-sub">ExamPro Management System</div>
+    </div>
+    <div class="ll-info">
+      <div class="ll-info-title">Admin Access</div>
+      <div class="ll-info-row"><i class="ti ti-notes"></i>Create &amp; manage exams and quizzes</div>
+      <div class="ll-info-row"><i class="ti ti-database"></i>Manage the question bank</div>
+      <div class="ll-info-row"><i class="ti ti-chart-bar"></i>View results and analytics</div>
+      <div class="ll-info-row"><i class="ti ti-users"></i>Manage students</div>
+    </div>
+  </div>
+  <div class="login-right">
+    <div class="login-form-box">
+      <div id="admin-err" class="login-err">
+        <i class="ti ti-alert-circle" style="font-size:16px;flex-shrink:0"></i>
+        <span id="admin-err-msg"></span>
+      </div>
+      <div class="lf-title">Welcome back, Admin</div>
+      <div class="lf-sub">Enter your credentials to access the management panel.</div>
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input class="form-input" type="text" id="a-un" placeholder="Enter your username">
+        <div class="form-error" id="a-err-un">Username is required.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" id="a-pw" placeholder="Enter your password">
+        <div class="form-error" id="a-err-pw">Password is required.</div>
+      </div>
+      <button class="btn-login btn-login-admin" onclick="doAdminLogin()">
+        <i class="ti ti-login"></i> Sign In as Admin
+      </button>
+
+      <div class="back-link" onclick="showLanding()">
+        <i class="ti ti-arrow-left" style="font-size:13px"></i> Back to role selection
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  STUDENT LOGIN — Name Only                  -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="student-login-page" style="display:none;min-height:100vh;align-items:stretch">
+  <div class="login-left" style="background:#0f2318">
+    <div class="ll-brand">
+      <div class="ll-icon ll-icon-student"><i class="ti ti-user-graduate"></i></div>
+      <div class="ll-name">Student Portal</div>
+      <div class="ll-sub">ExamPro Smart Quiz System</div>
+    </div>
+    <div class="ll-info" style="border-color:rgba(29,158,117,.25)">
+      <div class="ll-info-title">How it works</div>
+      <div class="ll-info-row student-color"><i class="ti ti-pencil"></i>Enter your full name to get started</div>
+      <div class="ll-info-row student-color"><i class="ti ti-list-check"></i>Choose from your available exams</div>
+      <div class="ll-info-row student-color"><i class="ti ti-clock"></i>Complete the exam within the time limit</div>
+      <div class="ll-info-row student-color"><i class="ti ti-trophy"></i>See your score instantly after submitting</div>
+    </div>
+  </div>
+  <div class="login-right">
+    <div class="login-form-box">
+      <div style="width:52px;height:52px;border-radius:14px;background:rgba(29,158,117,.1);display:flex;align-items:center;justify-content:center;margin-bottom:18px;font-size:24px;color:#1d9e75">
+        <i class="ti ti-user-graduate"></i>
+      </div>
+      <div class="lf-title">Hello, Student!</div>
+      <div class="lf-sub">Just enter your full name below and you'll be taken straight to your available exams. No password needed.</div>
+      <div class="form-group">
+        <label class="form-label">Your Full Name</label>
+        <input class="form-input student-focus" type="text" id="s-name" placeholder="e.g. Juan dela Cruz" autocomplete="name">
+        <div class="form-error" id="s-err-name">Please enter your name.</div>
+      </div>
+      <button class="btn-login btn-login-student" onclick="doStudentLogin()">
+        <i class="ti ti-arrow-right"></i> Enter &amp; Take Exam
+      </button>
+      <div class="back-link" onclick="showLanding()">
+        <i class="ti ti-arrow-left" style="font-size:13px"></i> Back to role selection
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  TEACHER LOGIN — Username + Password        -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="teacher-login-page" style="display:none;min-height:100vh;align-items:stretch">
+  <div class="login-left" style="background:#171126">
+    <div class="ll-brand">
+      <div class="ll-icon ll-icon-teacher"><i class="ti ti-chalkboard"></i></div>
+      <div class="ll-name">Teacher Portal</div>
+      <div class="ll-sub">ExamPro Smart Quiz System</div>
+    </div>
+    <div class="ll-info" style="border-color:rgba(124,92,230,.25)">
+      <div class="ll-info-title">Teacher Access</div>
+      <div class="ll-info-row"><i class="ti ti-notes" style="color:#a78bfa"></i>Create &amp; manage exams and quizzes</div>
+      <div class="ll-info-row"><i class="ti ti-database" style="color:#a78bfa"></i>Create, store &amp; organize questions</div>
+      <div class="ll-info-row"><i class="ti ti-chart-bar" style="color:#a78bfa"></i>View class performance and results</div>
+      <div class="ll-info-row"><i class="ti ti-checkup-list" style="color:#a78bfa"></i>Review automatically graded results</div>
+    </div>
+  </div>
+  <div class="login-right">
+    <div class="login-form-box">
+      <div id="teacher-err" class="login-err">
+        <i class="ti ti-alert-circle" style="font-size:16px;flex-shrink:0"></i>
+        <span id="teacher-err-msg"></span>
+      </div>
+      <div style="width:52px;height:52px;border-radius:14px;background:rgba(124,92,230,.1);display:flex;align-items:center;justify-content:center;margin-bottom:18px;font-size:24px;color:#7c5ce6">
+        <i class="ti ti-chalkboard"></i>
+      </div>
+      <div class="lf-title">Welcome, Teacher!</div>
+      <div class="lf-sub">Sign in to create exams, manage your question bank, and view your class performance.</div>
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input class="form-input teacher-focus" type="text" id="t-un" placeholder="Enter your username">
+        <div class="form-error" id="t-err-un">Username is required.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input teacher-focus" type="password" id="t-pw" placeholder="Enter your password">
+        <div class="form-error" id="t-err-pw">Password is required.</div>
+      </div>
+      <button class="btn-login btn-login-teacher" onclick="doTeacherLogin()">
+        <i class="ti ti-login"></i> Sign In as Teacher
+      </button>
+      <div class="back-link" onclick="showLanding()">
+        <i class="ti ti-arrow-left" style="font-size:13px"></i> Back to role selection
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  APP PAGE                                   -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="app-page">
+  <div class="app">
+    <div class="sidebar">
+      <div class="sb-brand">
+        <div class="sb-brand-name">ExamPro</div>
+        <div class="sb-brand-sub">Smart Quiz Management</div>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding-top:6px">
+        <div class="sb-section">Overview</div>
+        <div class="sb-item" id="nav-dashboard" onclick="nav('dashboard')"><i class="ti ti-layout-dashboard"></i>Dashboard</div>
+        <div class="sb-section">Exams</div>
+        <div class="sb-item" id="nav-exams" onclick="nav('exams')">
+          <i class="ti ti-notes"></i>Exams &amp; Quizzes
+          <span class="atag atag-a" id="tag-exams"><i class="ti ti-lock" style="font-size:9px"></i>Admin</span>
+        </div>
+        <div class="sb-item" id="nav-qbank" onclick="nav('qbank')">
+          <i class="ti ti-database"></i>Question Bank
+          <span class="atag atag-a" id="tag-qbank"><i class="ti ti-lock" style="font-size:9px"></i>Admin</span>
+        </div>
+        <div class="sb-item" id="nav-take" onclick="nav('take')">
+          <i class="ti ti-pencil"></i>Take Exam
+        </div>
+        <div class="sb-section">Analytics</div>
+        <div class="sb-item" id="nav-results" onclick="nav('results')"><i class="ti ti-chart-bar"></i><span id="results-nav-label">Results</span></div>
+        <div class="sb-item" id="nav-students" onclick="nav('students')"><i class="ti ti-users"></i>Students</div>
+        <div class="sb-item" id="nav-settings" onclick="nav('settings')"><i class="ti ti-settings"></i>System Settings</div>
+        <div class="sb-item" id="nav-logs" onclick="nav('logs')"><i class="ti ti-list-details"></i>Exam Logs</div>
+      </div>
+      <div class="sb-footer">
+        <div class="sb-av" id="sb-av">AU</div>
+        <div>
+          <div class="sb-uname" id="sb-name">Admin User</div>
+          <div class="sb-urole" id="sb-role">Administrator</div>
+        </div>
+        <button class="btn-logout" onclick="doLogout()" title="Log out"><i class="ti ti-logout" style="font-size:15px"></i></button>
+      </div>
+    </div>
+    <div class="main">
+      <div class="main-hdr">
+        <div class="main-title" id="page-title">Dashboard</div>
+        <div class="role-pill" id="role-pill">
+          <div class="pill-dot dot-a" id="pill-dot"></div>
+          <span id="pill-txt">Administrator</span>
+        </div>
+      </div>
+      <div class="notice" id="notice"></div>
+      <div class="main-body" id="main-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ EXAM TAKING ═══════════ -->
+<div id="exam-screen">
+  <div class="exam-topbar">
+    <div>
+      <div class="exam-topbar-title" id="et-title">Exam Title</div>
+      <div class="exam-topbar-student" id="et-student"></div>
+    </div>
+    <div class="exam-timer"><i class="ti ti-clock"></i><span id="timer-display">00:00</span></div>
+  </div>
+  <div class="exam-progress-bar"><div class="exam-progress-fill" id="exam-prog"></div></div>
+  <div class="exam-content" id="exam-content"></div>
+</div>
+
+<!-- ═══════════ RESULT SCREEN ═══════════ -->
+<div id="result-screen">
+  <div class="result-box">
+    <div class="result-icon" id="r-icon">🎉</div>
+    <div class="result-title" id="r-title">Exam Complete!</div>
+    <div class="result-sub" id="r-sub">Here are your results</div>
+    <div class="result-score" id="r-score">88%</div>
+    <div class="result-status" id="r-status">Passed</div>
+    <div class="result-details" id="r-details"></div>
+    <button class="btn btn-primary" onclick="closeResult()">Back to Take Exam</button>
+  </div>
+</div>
+
+<!-- ═══════════ MODALS ═══════════ -->
+<!-- Create/Edit Exam Modal -->
+<div class="modal-overlay" id="modal-exam">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title" id="modal-exam-title">Create Exam</div>
+      <button class="modal-close" onclick="closeModal('modal-exam')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="fi-row">
+        <div class="fi"><label>Exam Title *</label><input type="text" id="ex-title" placeholder="e.g. Algebra Fundamentals"></div>
+        <div class="fi"><label>Subject *</label>
+          <select id="ex-subject">
+            <option value="">Select subject</option>
+            <option>Mathematics</option><option>History</option><option>Science</option>
+            <option>English</option><option>Quanti</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="fi"><label>Description</label><textarea id="ex-desc" placeholder="Brief description of this exam..."></textarea></div>
+      <div class="fi-row">
+        <div class="fi"><label>Duration (minutes) *</label><input type="number" id="ex-dur" placeholder="e.g. 45" min="1"></div>
+        <div class="fi"><label>Pass Score (%) *</label><input type="number" id="ex-pass" placeholder="e.g. 75" min="1" max="100"></div>
+      </div>
+      <div style="border-top:.5px dashed #e2e5ee;margin:4px 0 16px;padding-top:14px">
+        <div style="font-size:13px;font-weight:700;color:#1a1f2e;margin-bottom:10px"><i class="ti ti-shield-lock" style="font-size:13px;margin-right:4px"></i>Security &amp; Access Control</div>
+        <div class="fi-row">
+          <div class="fi"><label>Opens At (optional)</label><input type="datetime-local" id="ex-start-window"></div>
+          <div class="fi"><label>Closes At (optional)</label><input type="datetime-local" id="ex-end-window"></div>
+        </div>
+        <div class="fi">
+          <label>Access Code(s) <span style="font-weight:400;color:#9ca3af">— one-time codes, comma separated. Leave blank if no code is required.</span></label>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="ex-access-codes" placeholder="e.g. XJ29KP, QW83ZT" style="flex:1">
+            <button type="button" class="btn btn-sm" onclick="generateAccessCodes()" style="flex-shrink:0">Generate 10</button>
+          </div>
+        </div>
+        <div class="fi" style="margin-bottom:0">
+          <label>IP Whitelist (optional) <span style="font-weight:400;color:#9ca3af">— comma separated IPs; best-effort client-side check only</span></label>
+          <input type="text" id="ex-ip-whitelist" placeholder="e.g. 203.0.113.5, 203.0.113.6">
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:700;color:#1a1f2e">Questions</div>
+        <button class="btn btn-sm" onclick="addQuestion()"><i class="ti ti-plus" style="font-size:12px;margin-right:3px"></i>Add Question</button>
+      </div>
+      <div id="questions-container"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-exam')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveExam()">Save Exam</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Question Bank Modal -->
+<div class="modal-overlay" id="modal-qbank">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title" id="modal-qbank-title">Add Question</div>
+      <button class="modal-close" onclick="closeModal('modal-qbank')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="fi"><label>Question Text *</label><textarea id="qb-text" placeholder="Enter your question here..."></textarea></div>
+      <div class="fi-row">
+        <div class="fi"><label>Subject *</label>
+          <select id="qb-subject">
+            <option value="">Select subject</option>
+            <option>Mathematics</option><option>History</option><option>Science</option>
+            <option>English</option><option>Quanti</option><option>Other</option>
+          </select>
+        </div>
+        <div class="fi"><label>Type *</label>
+          <select id="qb-type" onchange="renderQBTypeFields()">
+            <option value="">Select type</option>
+            <option value="mc">Multiple Choice</option>
+            <option value="tf">True / False</option>
+            <option value="sa">Short Answer</option>
+          </select>
+        </div>
+      </div>
+      <div class="fi"><label>Difficulty *</label>
+        <select id="qb-diff">
+          <option value="">Select difficulty</option>
+          <option>Easy</option><option>Medium</option><option>Hard</option>
+        </select>
+      </div>
+      <div id="qb-type-fields"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-qbank')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveQBQuestion()">Save Question</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit Student Modal -->
+<div class="modal-overlay" id="modal-student">
+  <div class="modal" style="width:440px">
+    <div class="modal-hdr">
+      <div class="modal-title" id="modal-student-title">Add Student</div>
+      <button class="modal-close" onclick="closeModal('modal-student')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="fi"><label>Full Name *</label><input type="text" id="st-name" placeholder="e.g. Juan dela Cruz"></div>
+      <div class="fi"><label>Email *</label><input type="email" id="st-email" placeholder="e.g. juan@school.edu"></div>
+      <div class="fi-row">
+        <div class="fi"><label>Section</label><input type="text" id="st-section" placeholder="e.g. BSIT 3-A"></div>
+        <div class="fi"><label>Status</label>
+          <select id="st-status">
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+            <option value="Pending">Pending</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-student')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveStudent()">Save Student</button>
+    </div>
+  </div>
+</div>
+
+<!-- Access Code Modal -->
+<div class="modal-overlay" id="modal-access">
+  <div class="modal" style="width:380px">
+    <div class="modal-hdr">
+      <div class="modal-title"><i class="ti ti-key" style="font-size:15px;margin-right:5px"></i>Enter Access Code</div>
+      <button class="modal-close" onclick="closeModal('modal-access')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:#6b7280;margin-bottom:14px">This exam requires a one-time access code from your instructor. Each code can only be used once.</p>
+      <div class="fi"><label>Access Code *</label><input type="text" id="access-code-input" placeholder="e.g. XJ29KP" style="text-transform:uppercase">
+        <div class="form-error" id="access-code-err">Invalid or already-used access code.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-access')">Cancel</button>
+      <button class="btn btn-primary" onclick="verifyAccessCode()">Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Delete Modal -->
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal" style="width:380px">
+    <div class="modal-hdr">
+      <div class="modal-title">Confirm Delete</div>
+      <button class="modal-close" onclick="closeModal('modal-confirm')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:#374151;line-height:1.6" id="confirm-msg">Are you sure you want to delete this item?</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-confirm')">Cancel</button>
+      <button class="btn btn-red" id="confirm-ok-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─── SUPABASE DATABASE CONFIGURATION ────────────── */
+// Kukunin mula sa config.js o kaya sa localStorage (config.js loads with defer)
+let SUPABASE_URL = '';
+let SUPABASE_ANON_KEY = '';
+
+let supabaseClient = null;
+const isSupabaseConfigured = () => {
+  return SUPABASE_URL && SUPABASE_ANON_KEY && 
+         SUPABASE_URL.length > 10 &&
+         SUPABASE_ANON_KEY.length > 10 &&
+         !SUPABASE_URL.includes('YOUR_') && 
+         !SUPABASE_ANON_KEY.includes('YOUR_');
+};
+
+async function initSupabase() {
+  // Try to read from config.js (loaded via defer)
+  if (typeof window !== 'undefined' && window.SUPABASE_CONFIG) {
+    const cfg = window.SUPABASE_CONFIG;
+    if (cfg.url) SUPABASE_URL = cfg.url;
+    if (cfg.anonKey && !cfg.anonKey.includes('PASTE_YOUR_')) SUPABASE_ANON_KEY = cfg.anonKey;
+  }
+
+  // Also support config.js files that use: const SUPABASE_CONFIG = {...}
+  try {
+    if (typeof SUPABASE_CONFIG !== 'undefined') {
+      if (SUPABASE_CONFIG.url) SUPABASE_URL = SUPABASE_CONFIG.url;
+      if (SUPABASE_CONFIG.anonKey && !SUPABASE_CONFIG.anonKey.includes('PASTE_YOUR_')) {
+        SUPABASE_ANON_KEY = SUPABASE_CONFIG.anonKey;
+      }
+    }
+  } catch (e) {}
+  // Try localStorage overrides
+  const lsUrl = localStorage.getItem('SUPABASE_URL');
+  const lsKey = localStorage.getItem('SUPABASE_ANON_KEY');
+  if (lsUrl) SUPABASE_URL = lsUrl;
+  if (lsKey) SUPABASE_ANON_KEY = lsKey;
+
+  // 1. Check kung na-load talaga ang Supabase JS library mula sa CDN
+  if (typeof window.supabase === 'undefined') {
+    console.error('❌ Supabase JS library HINDI naka-load (CDN blocked, walang internet, o CSP restriction).');
+    supabaseClient = null;
+    return false;
+  }
+
+  // 2. Check kung kumpleto ang config
+  if (!isSupabaseConfigured()) {
+    console.log('ℹ️ Supabase URL/Key hindi pa kumpleto o naka-default placeholder pa.');
+    supabaseClient = null;
+    return false;
+  }
+
+  // 3. Gumawa ng client
+  let client;
+  try {
+    client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } catch (e) {
+    console.error('❌ Supabase createClient failed:', e);
+    supabaseClient = null;
+    return false;
+  }
+
+  // 4. IMPORTANTE: I-TEST ang actual na koneksyon gamit ang totoong query
+  try {
+    const { error } = await client.from('users').select('id').limit(1);
+    if (error) {
+      console.error('❌ Supabase connection test FAILED:', error.message, error);
+      supabaseClient = null;
+      return false;
+    }
+  } catch (e) {
+    console.error('❌ Supabase connection test threw an error:', e);
+    supabaseClient = null;
+    return false;
+  }
+
+  // Success
+  supabaseClient = client;
+  console.log('✅ Supabase CONNECTED at verified:', SUPABASE_URL);
+  await loadAllDataFromSupabase();
+  return true;
+}
+
+// Delayed init - wait for deferred scripts to load
+window.addEventListener('DOMContentLoaded', () => {
+  let attempts = 0;
+  const tryConnect = async () => {
+    attempts++;
+    const ok = await initSupabase();
+    if (!ok && attempts < 10) {
+      setTimeout(tryConnect, 500);
+    }
+  };
+  setTimeout(tryConnect, 100);
+});
+
+/* ─── APP STATE ──────────────────────────────────── */
+const S = { role: null, displayName: null, initials: null, userId: null, page: 'dashboard' };
+
+/* ─── LOCAL / CACHED DATA (Synced with DB) ───────── */
+let systemSettings = {
+  examNotifications: true,
+  autoGrading: true,
+  antiCheating: true,
+  resultNotifications: true
+};
+
+let examLogs = [];
+let exams = [
+  { id:1, title:'Algebra Fundamentals', desc:'Basic algebra concepts and operations', subject:'Mathematics', duration:45, pass:75, attempts:1,
+    questions:[
+      { text:'Solve: 2x + 5 = 13', type:'mc', choices:['x = 2','x = 4','x = 6','x = 9'], answer:1 },
+      { text:'What is the value of π (pi) to two decimal places?', type:'mc', choices:['3.12','3.14','3.16','3.18'], answer:1 },
+      { text:'Is x² = -1 solvable in real numbers?', type:'tf', choices:['True','False'], answer:1 },
+    ]},
+  { id:2, title:'World History Quiz', desc:'Major world events and civilizations', subject:'History', duration:30, pass:70, attempts:1,
+    questions:[
+      { text:'Which empire fell in 476 AD?', type:'mc', choices:['Roman Empire','Byzantine Empire','Ottoman Empire','Persian Empire'], answer:0 },
+      { text:'World War II ended in 1945.', type:'tf', choices:['True','False'], answer:0 },
+    ]},
+  { id:3, title:'Advanced Chemistry', desc:'Molecular structures and reactions', subject:'Science', duration:60, pass:80, attempts:0, questions:[] },
+  { id:4, title:'Finals', desc:'Quantitative reasoning final exam', subject:'Quanti', duration:60, pass:75, attempts:1,
+    questions:[
+      { text:'A train travels at 60 km/h for 2.5 hours. How far does it travel?', type:'mc', choices:['120 km','150 km','180 km','200 km'], answer:1 },
+    ]},
+];
+let nextExamId = 5;
+
+let qbank = [
+  { id:1, text:'What is 2x + 5 = 13, solve for x?', subject:'Mathematics', type:'mc', diff:'Easy', choices:['x=2','x=4','x=6','x=9'], answer:1 },
+  { id:2, text:'Which empire fell in 476 AD?', subject:'History', type:'mc', diff:'Medium', choices:['Roman','Byzantine','Ottoman','Persian'], answer:0 },
+  { id:3, text:'What is the atomic number of Carbon?', subject:'Science', type:'sa', diff:'Easy', choices:[], answer:'6' },
+  { id:4, text:'Solve: log₂(64)', subject:'Quanti', type:'sa', diff:'Hard', choices:[], answer:'6' },
+];
+let nextQBId = 5;
+
+let results = [
+  { name:'Juan dela Cruz', exam:'Algebra Fundamentals', score:88, pass:true, date:'May 3, 2026' },
+  { name:'Maria Santos', exam:'World History Quiz', score:62, pass:false, date:'May 4, 2026' },
+  { name:'Pedro Reyes', exam:'Finals', score:79, pass:true, date:'May 5, 2026' },
+];
+
+let students = [
+  { id:1, name:'Juan dela Cruz', email:'juan@school.edu', section:'BSIT 3-A', status:'Active' },
+  { id:2, name:'Maria Santos',   email:'maria@school.edu', section:'BSIT 3-A', status:'Active' },
+  { id:3, name:'Pedro Reyes',    email:'pedro@school.edu', section:'BSCS 2-B', status:'Pending' },
+];
+let nextStudentId = 4;
+let editingStudentId = null;
+
+/* ─── EXAM CREATION ──────────────────────────────── */
+let editingExamId = null;
+let questionBlocks = [];
+let qbEditId = null;
+let _qid = 0;
+
+/* ─── EXAM TAKING ────────────────────────────────── */
+let activeExam = null;
+let studentAnswers = {};
+let timerInterval = null;
+let timeLeft = 0;
+
+/* ══════════════════════════════════════════════════ */
+/*  SUPABASE DATA LOADERS                             */
+/* ══════════════════════════════════════════════════ */
+async function loadAllDataFromSupabase() {
+  if (!supabaseClient) return;
+
+  try {
+    // 1. Fetch Exams + Questions + Choices (INCLUDING security/access-control fields)
+    const { data: dbExams, error: errE } = await supabaseClient
+      .from('exams')
+      .select(`
+        id, title, description, subject, duration, pass_score, attempts_count, status,
+        start_window, end_window, access_codes, used_codes, ip_whitelist,
+        questions (
+          id, question_text, type, correct_answer_index, correct_answer_text, order_index,
+          question_choices ( choice_text, choice_index, is_correct )
+        )
+      `)
+      .order('id', { ascending: false });
+
+    if (!errE && dbExams) {
+      exams = dbExams.map(e => ({
+        id: e.id,
+        title: e.title,
+        desc: e.description || '',
+        subject: e.subject,
+        duration: e.duration,
+        pass: e.pass_score,
+        attempts: e.attempts_count || 0,
+        status: e.status,
+        startWindow: e.start_window,
+        endWindow: e.end_window,
+        accessCodes: e.access_codes || [],
+        usedCodes: e.used_codes || [],
+        ipWhitelist: e.ip_whitelist || [],
+        questions: (e.questions || []).sort((a,b) => a.order_index - b.order_index).map(q => ({
+          id: q.id,
+          text: q.question_text,
+          type: q.type,
+          answer: q.type === 'sa' ? q.correct_answer_text : q.correct_answer_index,
+          choices: (q.question_choices || []).sort((a,b) => a.choice_index - b.choice_index).map(c => c.choice_text)
+        }))
+      }));
+    } else if (errE) {
+      console.error('❌ Error fetching exams (may check kung tama ang column names sa Supabase):', errE.message, errE);
+    }
+
+    // 2. Fetch Question Bank
+    const { data: dbQB, error: errQB } = await supabaseClient
+      .from('question_bank')
+      .select(`
+        id, question_text, subject, type, difficulty, correct_answer_index, correct_answer_text,
+        question_bank_choices ( choice_text, choice_index )
+      `)
+      .order('id', { ascending: false });
+
+    if (!errQB && dbQB) {
+      qbank = dbQB.map(q => ({
+        id: q.id,
+        text: q.question_text,
+        subject: q.subject,
+        type: q.type,
+        diff: q.difficulty,
+        answer: q.type === 'sa' ? q.correct_answer_text : q.correct_answer_index,
+        choices: (q.question_bank_choices || []).sort((a,b) => a.choice_index - b.choice_index).map(c => c.choice_text)
+      }));
+    }
+
+    // 3. Fetch Students
+    const { data: dbStudents, error: errSt } = await supabaseClient
+      .from('users')
+      .select('id, name, email, section, status')
+      .eq('role', 'student')
+      .order('name', { ascending: true });
+
+    if (!errSt && dbStudents) students = dbStudents;
+
+    // 4. Fetch Exam Results
+    const { data: dbResults, error: errR } = await supabaseClient
+      .from('exam_results')
+      .select('*')
+      .order('id', { ascending: false });
+
+    if (!errR && dbResults) {
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      results = dbResults.map(r => {
+        const d = new Date(r.submitted_at);
+        return {
+          id: r.id,
+          name: r.student_name,
+          exam: r.exam_title,
+          score: Math.round(Number(r.score_percentage)),
+          pass: Boolean(r.passed),
+          date: `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
+        };
+      });
+    }
+
+    // 5. Fetch Settings
+    const { data: dbSettings, error: errSet } = await supabaseClient.from('system_settings').select('*');
+    if (!errSet && dbSettings) {
+      dbSettings.forEach(s => {
+        systemSettings[s.setting_key] = (s.setting_value === 'true' || s.setting_value === '1');
+      });
+    }
+
+    // 6. Fetch Logs
+    const { data: dbLogs, error: errL } = await supabaseClient
+      .from('exam_logs')
+      .select('*')
+      .order('id', { ascending: false })
+      .limit(50);
+
+    if (!errL && dbLogs) {
+      examLogs = dbLogs.map(l => ({
+        action: l.action,
+        user: l.user_name,
+        date: new Date(l.created_at).toLocaleString()
+      }));
+    }
+
+  } catch (err) {
+    console.error('Error fetching Supabase data:', err);
+  }
+}
+
+/* ══════════════════════════════════════════════════ */
+/*  ROUTING / PAGE VISIBILITY                         */
+/* ══════════════════════════════════════════════════ */
+function hideAll() {
+  ['landing-page','admin-login-page','student-login-page','teacher-login-page','app-page'].forEach(id => {
+    const el = $(id);
+    if (el) { el.style.display = 'none'; }
+  });
+}
+function showLanding() {
+  hideAll();
+  $('landing-page').style.display = 'flex';
+  $('landing-page').style.alignItems = 'center';
+  $('landing-page').style.justifyContent = 'center';
+}
+function showAdminLogin() {
+  hideAll();
+  const p = $('admin-login-page');
+  p.style.display = 'flex';
+  clearAdminErr();
+  setTimeout(() => { $('a-un').focus(); }, 100);
+}
+function showStudentLogin() {
+  hideAll();
+  const p = $('student-login-page');
+  p.style.display = 'flex';
+  $('s-err-name').style.display = 'none';
+  $('s-name').value = '';
+  setTimeout(() => { $('s-name').focus(); }, 100);
+}
+function showTeacherLogin() {
+  hideAll();
+  const p = $('teacher-login-page');
+  p.style.display = 'flex';
+  clearTeacherErr();
+  $('t-un').value = '';
+  $('t-pw').value = '';
+  setTimeout(() => { $('t-un').focus(); }, 100);
+}
+
+function clearAdminErr() {
+  $('admin-err').style.display = 'none';
+  ['a-un','a-pw'].forEach(id => $(id).classList.remove('ei'));
+  ['a-err-un','a-err-pw'].forEach(id => $(id).style.display = 'none');
+}
+
+function clearTeacherErr() {
+  $('teacher-err').style.display = 'none';
+  ['t-un','t-pw'].forEach(id => $(id).classList.remove('ei'));
+  ['t-err-un','t-err-pw'].forEach(id => $(id).style.display = 'none');
+}
+
+/* ══════════════════════════════════════════════════ */
+/*  AUTHENTICATION VIA SUPABASE / OFFLINE             */
+/* ══════════════════════════════════════════════════ */
+async function doAdminLogin() {
+  clearAdminErr();
+  const un = $('a-un').value.trim();
+  const pw = $('a-pw').value;
+  let ok = true;
+  if (!un) { $('a-err-un').style.display='block'; $('a-un').classList.add('ei'); ok=false; }
+  if (!pw) { $('a-err-pw').style.display='block'; $('a-pw').classList.add('ei'); ok=false; }
+  if (!ok) return;
+
+  if (supabaseClient) {
+    const { data: user, error } = await supabaseClient
+      .from('users')
+      .select('*')
+      .eq('username', un)
+      .eq('password', pw)
+      .eq('role', 'admin')
+      .single();
+
+    if (user && !error) {
+      if (user.status === 'Inactive') {
+        $('admin-err-msg').textContent = 'Your admin account is inactive.';
+        $('admin-err').style.display = 'flex';
+        return;
+      }
+      S.role = 'admin';
+      S.displayName = user.name;
+      S.initials = user.initials || 'AU';
+      S.userId = user.id;
+      await addSupabaseLog(`Admin logged in: ${user.name}`, user.name, user.id);
+      await loadAllDataFromSupabase();
+      launchApp();
+      return;
+    }
+  }
+
+  // Fallback offline admin
+  if (un === 'admin' && pw === 'admin123') {
+    S.role = 'admin'; S.displayName = 'Admin User'; S.initials = 'AU'; S.userId = 1;
+    addLog('Admin logged in', 'Admin User');
+    launchApp();
+  } else {
+    $('admin-err-msg').textContent = 'Invalid username or password. Please try again.';
+    $('admin-err').style.display = 'flex';
+  }
+}
+
+async function doTeacherLogin() {
+  clearTeacherErr();
+  const un = $('t-un').value.trim();
+  const pw = $('t-pw').value;
+  let ok = true;
+  if (!un) { $('t-err-un').style.display='block'; $('t-un').classList.add('ei'); ok=false; }
+  if (!pw) { $('t-err-pw').style.display='block'; $('t-pw').classList.add('ei'); ok=false; }
+  if (!ok) return;
+
+  if (supabaseClient) {
+    const { data: user, error } = await supabaseClient
+      .from('users')
+      .select('*')
+      .eq('username', un)
+      .eq('password', pw)
+      .eq('role', 'teacher')
+      .single();
+
+    if (user && !error) {
+      if (user.status === 'Inactive') {
+        $('teacher-err-msg').textContent = 'Your teacher account is inactive.';
+        $('teacher-err').style.display = 'flex';
+        return;
+      }
+      S.role = 'teacher';
+      S.displayName = user.name;
+      S.initials = user.initials || 'TU';
+      S.userId = user.id;
+      await addSupabaseLog(`Teacher logged in: ${user.name}`, user.name, user.id);
+      await loadAllDataFromSupabase();
+      launchApp();
+      return;
+    }
+  }
+
+  // Fallback offline teacher
+  if (un === 'teacher' && pw === 'teacher123') {
+    S.role = 'teacher'; S.displayName = 'Teacher User'; S.initials = 'TU'; S.userId = 2;
+    addLog('Teacher logged in', 'Teacher User');
+    launchApp();
+  } else {
+    $('teacher-err-msg').textContent = 'Invalid teacher credentials. Please try again.';
+    $('teacher-err').style.display = 'flex';
+  }
+}
+
+async function doStudentLogin() {
+  $('s-err-name').style.display = 'none';
+  $('s-name').classList.remove('ei');
+  const name = $('s-name').value.trim();
+  if (!name) {
+    $('s-err-name').style.display = 'block';
+    $('s-name').classList.add('ei');
+    return;
+  }
+
+  const parts = name.split(' ').filter(Boolean);
+  const initials = parts.length >= 2 ? (parts[0][0] + parts[parts.length-1][0]).toUpperCase() : name.slice(0,2).toUpperCase();
+
+  if (supabaseClient) {
+    // Find or create student in Supabase
+    let { data: student, error } = await supabaseClient
+      .from('users')
+      .select('*')
+      .eq('role', 'student')
+      .eq('name', name)
+      .maybeSingle();
+
+    if (!student) {
+      const { data: newSt } = await supabaseClient
+        .from('users')
+        .insert({ name, role: 'student', initials, status: 'Active' })
+        .select()
+        .single();
+      student = newSt;
+    }
+
+    if (student) {
+      S.role = 'student';
+      S.displayName = student.name;
+      S.initials = student.initials || initials;
+      S.userId = student.id;
+      await addSupabaseLog(`Student entered portal: ${name}`, name, student.id);
+      await loadAllDataFromSupabase();
+      launchApp();
+      return;
+    }
+  }
+
+  // Fallback offline
+  S.role = 'student';
+  S.displayName = name;
+  S.initials = initials;
+  launchApp();
+}
+
+/* ══════════════════════════════════════════════════ */
+/*  LAUNCH APP                                        */
+/* ══════════════════════════════════════════════════ */
+function launchApp() {
+  hideAll();
+  $('app-page').style.display = 'block';
+
+  const isA = S.role === 'admin';
+  const isT = S.role === 'teacher';
+  const isS = S.role === 'student';
+
+  $('sb-av').className = 'sb-av ' + (isA ? 'av-a' : isT ? 'av-t' : 'av-s');
+  $('sb-av').textContent = S.initials;
+  $('sb-name').textContent = S.displayName;
+  $('sb-role').textContent = isA ? 'Administrator' : isT ? 'Teacher' : 'Student';
+
+  $('role-pill').className = 'role-pill ' + (isA ? 'pill-a' : isT ? 'pill-t' : 'pill-s');
+  $('pill-dot').className = 'pill-dot ' + (isA ? 'dot-a' : isT ? 'dot-t' : 'dot-s');
+  $('pill-txt').textContent = isA ? 'Administrator' : isT ? 'Teacher' : 'Student';
+
+  ['nav-dashboard','nav-exams','nav-qbank','nav-take','nav-results','nav-students','nav-settings','nav-logs']
+    .forEach(id => { const el=$(id); if(el) el.style.display='none'; });
+
+  $('tag-exams').style.display = 'none';
+  $('tag-qbank').style.display = 'none';
+
+  if (isS) {
+    $('nav-take').style.display = 'flex';
+    $('nav-results').style.display = 'flex';
+    $('results-nav-label').textContent = 'Results';
+    nav('take');
+    return;
+  }
+
+  if (isT) {
+    $('nav-dashboard').style.display = 'flex';
+    $('nav-exams').style.display = 'flex';
+    $('nav-qbank').style.display = 'flex';
+    $('nav-results').style.display = 'flex';
+    $('results-nav-label').textContent = 'Class Performance';
+    nav('dashboard');
+    return;
+  }
+
+  ['nav-dashboard','nav-exams','nav-qbank','nav-take','nav-results','nav-students','nav-settings','nav-logs']
+    .forEach(id => { const el=$(id); if(el) el.style.display='flex'; });
+  $('tag-exams').style.display = 'inline-flex';
+  $('tag-qbank').style.display = 'inline-flex';
+  $('results-nav-label').textContent = 'Results & Reports';
+  nav('dashboard');
+}
+
+function doLogout() {
+  if (S.displayName) addLog('Logged out', S.displayName);
+  S.role = null; S.displayName = null; S.initials = null; S.userId = null;
+  showLanding();
+}
+
+/* ══════════════════════════════════════════════════ */
+/*  NAVIGATION                                        */
+/* ══════════════════════════════════════════════════ */
+function nav(page) {
+  const allowed = {
+    student: ['take','results'],
+    teacher: ['dashboard','exams','qbank','results'],
+    admin: ['dashboard','exams','qbank','take','results','students','settings','logs']
+  };
+
+  if (S.role && allowed[S.role] && !allowed[S.role].includes(page)) {
+    page = S.role === 'student' ? 'take' : 'dashboard';
+  }
+
+  S.page = page;
+
+  document.querySelectorAll('.sb-item').forEach(el => el.classList.remove('active'));
+  const el = $('nav-' + page);
+  if (el) el.classList.add('active');
+
+  render();
+}
+function showNotice(cls, html) {
+  const n = $('notice'); n.className='notice '+cls; n.style.display='flex'; n.innerHTML=html;
+}
+function hideNotice() { $('notice').style.display='none'; }
+
+/* ══════════════════════════════════════════════════ */
+/*  RENDER                                            */
+/* ══════════════════════════════════════════════════ */
+function render() {
+  const isA = S.role === 'admin', isT = S.role === 'teacher', page = S.page, body = $('main-body');
+  const titles = { dashboard:'Dashboard', exams:'Exams & Quizzes', qbank:'Question Bank', take:'Take Exam', results:(isT?'Class Performance':'Results'), students:'Students', settings:'System Settings', logs:'Exam Logs' };
+  $('page-title').textContent = titles[page] || page;
+  hideNotice();
+
+  if (page==='dashboard') { renderDashboard(isA, body); return; }
+  if (page==='exams')     { renderExams(isA, body); return; }
+  if (page==='qbank')     { renderQBank(isA, body); return; }
+  if (page==='take')      { renderTake(isA, body); return; }
+  if (page==='results')   { renderResults(body); return; }
+  if (page==='students')  { renderStudents(body); return; }
+  if (page==='settings')  { renderSettings(body); return; }
+  if (page==='logs')      { renderLogs(body); return; }
+}
+
+/* ─── DASHBOARD ──────────────────────────────────── */
+function renderDashboard(isA, body) {
+  const isT = S.role === 'teacher';
+  const totalQ = exams.reduce((a,e)=>a+(e.questions?e.questions.length:0),0);
+
+  if (isT) {
+    const classResults = results;
+    const avg = classResults.length ? Math.round(classResults.reduce((a,r)=>a+r.score,0)/classResults.length) : 0;
+    const passRate = classResults.length ? Math.round(classResults.filter(r=>r.pass).length/classResults.length*100) : 0;
+
+    body.innerHTML = `
+    <div class="dash-grid">
+      <div class="metric"><div class="metric-lbl">My Exams</div><div class="metric-val">${exams.length}</div><div class="metric-sub">Available exam sets</div></div>
+      <div class="metric"><div class="metric-lbl">Questions</div><div class="metric-val">${totalQ}</div><div class="metric-sub">Across your exams</div></div>
+      <div class="metric"><div class="metric-lbl">Submissions</div><div class="metric-val">${classResults.length}</div><div class="metric-sub">Recorded attempts</div></div>
+      <div class="metric"><div class="metric-lbl">Average Score</div><div class="metric-val">${classResults.length?avg+'%':'—'}</div><div class="metric-sub">Class performance</div></div>
+      <div class="metric"><div class="metric-lbl">Pass Rate</div><div class="metric-val">${classResults.length?passRate+'%':'—'}</div><div class="metric-sub">Overall</div></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-title">Class Performance</div>
+        <button class="btn btn-primary btn-sm" onclick="nav('results')">View All Results</button>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Student</th><th>Exam</th><th>Score</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>
+        ${classResults.slice(0,8).map(r=>`<tr>
+          <td><div class="td-name">${r.name}</div></td><td>${r.exam}</td><td>${r.score}%</td>
+          <td><span class="badge ${r.pass?'bp':'bf'}">${r.pass?'Passed':'Failed'}</span></td><td>${r.date}</td>
+        </tr>`).join('')}
+        ${!classResults.length?'<tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:28px">No class results yet.</td></tr>':''}
+        </tbody>
+      </table></div>
+    </div>`;
+    return;
+  }
+
+  body.innerHTML = `
+  <div class="dash-grid">
+    <div class="metric"><div class="metric-lbl">Total Exams</div><div class="metric-val">${exams.length}</div><div class="metric-sub">Across all subjects</div></div>
+    <div class="metric"><div class="metric-lbl">Questions</div><div class="metric-val">${totalQ}</div><div class="metric-sub">In bank &amp; exams</div></div>
+    <div class="metric"><div class="metric-lbl">Students</div><div class="metric-val">${students.length}</div><div class="metric-sub">Enrolled</div></div>
+    <div class="metric"><div class="metric-lbl">Results</div><div class="metric-val">${results.length}</div><div class="metric-sub">Recorded</div></div>
+    <div class="metric"><div class="metric-lbl">Pass Rate</div><div class="metric-val">${results.length?Math.round(results.filter(r=>r.pass).length/results.length*100)+'%':'—'}</div><div class="metric-sub">Overall</div></div>
+  </div>
+  ${examTableHTML()}`;
+}
+
+/* ─── EXAMS & QUIZZES ─────────────────────────────── */
+function renderExams(isA, body) {
+  const isT = S.role === 'teacher';
+  if (!isA && !isT) {
+    showNotice('n-danger','<i class="ti ti-lock" style="font-size:15px"></i><span>This section is restricted to <strong>Teachers and Administrators</strong> only.</span>');
+    body.innerHTML = accessDenied('ti-lock','Management Access Required','Exam creation and management is only available to teachers and administrators.');
+    return;
+  }
+  showNotice('n-admin','<i class="ti ti-shield-check" style="font-size:15px"></i><span>'+ (isT ? 'Teacher access — create, edit and manage your exams here.' : 'Admin access — create, edit and delete exams here.') +'</span>');
+  body.innerHTML = examTableHTML();
+}
+
+function examTableHTML() {
+  const sb={Mathematics:'bm',History:'bh',Science:'bs',Quanti:'bq',English:'bm',Other:'bq'};
+  return `<div class="card">
+    <div class="card-hdr">
+      <div class="card-title">${S.role==='teacher' ? 'My Exams &amp; Quizzes' : 'All Exams &amp; Quizzes'}</div>
+      <button class="btn btn-primary" onclick="openCreateExam()"><i class="ti ti-plus" style="font-size:13px;margin-right:4px"></i>Create Exam</button>
+    </div>
+    <div class="table-wrap"><table>
+      <colgroup><col style="width:240px"><col style="width:110px"><col style="width:90px"><col style="width:90px"><col style="width:70px"><col style="width:80px"><col style="width:110px"></colgroup>
+      <thead><tr><th>Name</th><th>Subject</th><th>Questions</th><th>Duration</th><th>Pass</th><th>Attempts</th><th>Actions</th></tr></thead>
+      <tbody>
+      ${exams.map(e=>`<tr>
+        <td><div class="td-name">${e.title}</div><div class="td-sub">${e.desc||'—'}${examSecurityBadgesInline(e)}</div></td>
+        <td><span class="badge ${sb[e.subject]||'bq'}">${e.subject}</span></td>
+        <td>${e.questions?e.questions.length:0} Qs</td><td>${e.duration} min</td><td>${e.pass}%</td><td>${e.attempts||0}</td>
+        <td style="display:flex;gap:6px;padding:10px 16px">
+          <button class="btn btn-icon btn-sm" onclick="openEditExam(${e.id})" title="Edit"><i class="ti ti-edit" style="font-size:13px"></i></button>
+          <button class="btn btn-icon btn-sm btn-red" onclick="confirmDelete('exam',${e.id},'${escQ(e.title)}')" title="Delete"><i class="ti ti-trash" style="font-size:13px"></i></button>
+        </td>
+      </tr>`).join('')}
+      ${!exams.length?'<tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:28px">No exams yet. Click "Create Exam" to get started.</td></tr>':''}
+      </tbody>
+    </table></div>
+  </div>`;
+}
+
+function examSecurityBadgesInline(e){
+  const bits=[];
+  if(e.accessCode || (e.accessCodes&&e.accessCodes.length)) bits.push('<i class="ti ti-key" title="Access code required"></i>');
+  if(e.startWindow||e.endWindow) bits.push('<i class="ti ti-calendar-time" title="Time-window restricted"></i>');
+  if(e.ipWhitelist&&e.ipWhitelist.length) bits.push('<i class="ti ti-map-pin" title="IP restricted"></i>');
+  if(!bits.length) return '';
+  return ' &nbsp;'+bits.join(' ');
+}
+
+/* ─── QUESTION BANK ──────────────────────────────── */
+function renderQBank(isA, body) {
+  const isT = S.role === 'teacher';
+  if (!isA && !isT) {
+    showNotice('n-danger','<i class="ti ti-lock" style="font-size:15px"></i><span>This section is restricted to <strong>Teachers and Administrators</strong> only.</span>');
+    body.innerHTML = accessDenied('ti-lock','Management Access Required','The Question Bank is only accessible to teachers and administrators.');
+    return;
+  }
+  showNotice('n-admin','<i class="ti ti-shield-check" style="font-size:15px"></i><span>'+ (isT ? 'Teacher access — create, store and organize questions here.' : 'Admin access — manage and organize all questions here.') +'</span>');
+  const sb={Mathematics:'bm',History:'bh',Science:'bs',Quanti:'bq',English:'bm',Other:'bq'};
+  const tl={mc:'Multiple Choice',tf:'True / False',sa:'Short Answer'};
+  body.innerHTML=`<div class="card">
+    <div class="card-hdr">
+      <div class="card-title">${S.role==='teacher' ? 'My Question Bank' : 'Question Bank'}</div>
+      <button class="btn btn-primary" onclick="openAddQB()"><i class="ti ti-plus" style="font-size:13px;margin-right:4px"></i>Add Question</button>
+    </div>
+    <div class="table-wrap"><table>
+      <colgroup><col style="width:300px"><col style="width:115px"><col style="width:140px"><col style="width:90px"><col style="width:110px"></colgroup>
+      <thead><tr><th>Name</th><th>Subject</th><th>Type</th><th>Difficulty</th><th>Actions</th></tr></thead>
+      <tbody>
+      ${qbank.map(q=>`<tr>
+        <td><div class="td-name">${q.text}</div></td>
+        <td><span class="badge ${sb[q.subject]||'bq'}">${q.subject}</span></td>
+        <td>${tl[q.type]||q.type}</td><td>${q.diff}</td>
+        <td style="display:flex;gap:6px;padding:10px 16px">
+          <button class="btn btn-icon btn-sm" onclick="openEditQB(${q.id})" title="Edit"><i class="ti ti-edit" style="font-size:13px"></i></button>
+          <button class="btn btn-icon btn-sm btn-red" onclick="confirmDelete('qb',${q.id},'question')" title="Delete"><i class="ti ti-trash" style="font-size:13px"></i></button>
+        </td>
+      </tr>`).join('')}
+      ${!qbank.length?'<tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:28px">No questions yet. Click "Add Question" to get started.</td></tr>':''}
+      </tbody>
+    </table></div>
+  </div>`;
+}
+
+/* ─── TAKE EXAM ──────────────────────────────────── */
+function renderTake(isA, body) {
+  const available = exams.filter(e=>e.questions&&e.questions.length>0);
+  if (isA) {
+    showNotice('n-admin','<i class="ti ti-shield-check" style="font-size:15px"></i><span>You created these exams — you can take them here as a preview.</span>');
+    body.innerHTML = `
+    <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:13px;color:#9ca3af">${available.length} exam${available.length!==1?'s':''} available</div>
+      <span class="atag atag-a" style="font-size:12px;padding:4px 12px"><i class="ti ti-shield-check" style="font-size:11px"></i>&nbsp;Admin Preview</span>
+    </div>
+    ${studentExamCards(available)}`;
+    return;
+  }
+  showNotice('n-student','<i class="ti ti-user-graduate" style="font-size:15px"></i><span>Welcome, <strong>'+S.displayName+'</strong> — select an exam below to begin.</span>');
+  body.innerHTML = `
+  <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+    <div style="font-size:13px;color:#9ca3af">${available.length} exam${available.length!==1?'s':''} available</div>
+    <span class="atag atag-s" style="font-size:12px;padding:4px 12px"><i class="ti ti-user" style="font-size:11px"></i>&nbsp;Student Portal</span>
+  </div>
+  ${studentExamCards(available)}`;
+}
+
+function studentExamCards(list) {
+  if (!list.length) return '<div style="background:#fff;border-radius:10px;border:.5px solid #e2e5ee;padding:40px;text-align:center;color:#9ca3af;font-size:13px">No exams available at this time.</div>';
+  const sb={Mathematics:'bm',History:'bh',Science:'bs',Quanti:'bq',English:'bm',Other:'bq'};
+  return `<div class="exam-cards-list">${list.map(e=>`
+  <div class="exam-card-item">
+    <div class="ec-top">
+      <div><div class="ec-title">${e.title}</div><div class="ec-desc">${e.desc||''}</div></div>
+      <span class="badge ${sb[e.subject]||'bq'}">${e.subject}</span>
+    </div>
+    <div class="ec-stats">
+      <div class="ec-stat"><i class="ti ti-help-circle"></i>${e.questions?e.questions.length:0} questions</div>
+      <div class="ec-stat"><i class="ti ti-clock"></i>${e.duration} min</div>
+      <div class="ec-stat"><i class="ti ti-target"></i>Pass: ${e.pass}%</div>
+      ${(e.accessCode||(e.accessCodes&&e.accessCodes.length))?'<div class="ec-stat"><i class="ti ti-key"></i>Code required</div>':''}
+      ${(e.startWindow||e.endWindow)?'<div class="ec-stat"><i class="ti ti-calendar-time"></i>Time-restricted</div>':''}
+      <div style="margin-left:auto"><button class="start-btn" onclick="startExam(${e.id})">Start Exam →</button></div>
+    </div>
+  </div>`).join('')}
+  </div>`;
+}
+
+/* ─── RESULTS ────────────────────────────────────── */
+function renderResults(body) {
+  const isA = S.role === 'admin';
+  const isT = S.role === 'teacher';
+  const visibleResults = (isA || isT) ? results : results.filter(r => r.name === S.displayName);
+
+  if (isT) {
+    const avg = visibleResults.length ? Math.round(visibleResults.reduce((a,r)=>a+r.score,0)/visibleResults.length) : 0;
+    const passRate = visibleResults.length ? Math.round(visibleResults.filter(r=>r.pass).length/visibleResults.length*100) : 0;
+    body.innerHTML = `
+    <div class="dash-grid">
+      <div class="metric"><div class="metric-lbl">Submissions</div><div class="metric-val">${visibleResults.length}</div><div class="metric-sub">Class attempts</div></div>
+      <div class="metric"><div class="metric-lbl">Average Score</div><div class="metric-val">${visibleResults.length?avg+'%':'—'}</div><div class="metric-sub">Class average</div></div>
+      <div class="metric"><div class="metric-lbl">Pass Rate</div><div class="metric-val">${visibleResults.length?passRate+'%':'—'}</div><div class="metric-sub">Overall</div></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">Class Performance &amp; Results</div></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Student</th><th>Exam</th><th>Score</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>
+        ${visibleResults.map(r=>`<tr><td><div class="td-name">${r.name}</div></td><td>${r.exam}</td><td>${r.score}%</td><td><span class="badge ${r.pass?'bp':'bf'}">${r.pass?'Passed':'Failed'}</span></td><td>${r.date}</td></tr>`).join('')}
+        ${!visibleResults.length?'<tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:28px">No class results yet.</td></tr>':''}
+        </tbody>
+      </table></div>
+    </div>`;
+    return;
+  }
+
+  body.innerHTML=`<div class="card">
+    <div class="card-hdr"><div class="card-title">${isA ? 'Exam Results &amp; Reports' : 'My Exam Results'}</div></div>
+    <div class="table-wrap"><table>
+      <colgroup>${isA ? '<col style="width:160px">' : ''}<col style="width:200px"><col style="width:80px"><col style="width:90px"><col style="width:130px"></colgroup>
+      <thead><tr>${isA ? '<th>Name</th>' : ''}<th>Exam</th><th>Score</th><th>Status</th><th>Date</th></tr></thead>
+      <tbody>
+      ${visibleResults.map(r=>`<tr>${isA ? `<td><div class="td-name">${r.name}</div></td>` : ''}<td>${r.exam}</td><td>${r.score}%</td><td><span class="badge ${r.pass?'bp':'bf'}">${r.pass?'Passed':'Failed'}</span></td><td>${r.date}</td></tr>`).join('')}
+      ${!visibleResults.length ? `<tr><td colspan="${isA ? 5 : 4}" style="text-align:center;color:#9ca3af;padding:28px">${isA ? 'No results yet.' : 'You have no exam results yet.'}</td></tr>` : ''}
+      </tbody>
+    </table></div>
+  </div>`;
+}
+
+/* ─── STUDENTS ───────────────────────────────────── */
+function renderStudents(body) {
+  const isA = S.role === 'admin';
+  const stBadge = { Active:'ba', Inactive:'bf', Pending:'bpend' };
+  body.innerHTML=`<div class="card">
+    <div class="card-hdr">
+      <div class="card-title">Students <span style="font-size:12px;color:#9ca3af;font-weight:400;margin-left:6px">${students.length} enrolled</span></div>
+      ${isA ? '<button class="btn btn-primary" onclick="openAddStudent()"><i class="ti ti-plus" style="font-size:13px;margin-right:4px"></i>Add Student</button>' : ''}
+    </div>
+    <div class="table-wrap"><table>
+      <colgroup><col style="width:170px"><col style="width:190px"><col style="width:110px"><col style="width:90px">${isA?'<col style="width:110px">':''}</colgroup>
+      <thead><tr><th>Name</th><th>Email</th><th>Section</th><th>Status</th>${isA?'<th>Actions</th>':''}</tr></thead>
+      <tbody>
+      ${students.map(s=>`<tr>
+        <td><div class="td-name">${s.name}</div></td>
+        <td style="color:#6b7280">${s.email||'—'}</td>
+        <td>${s.section||'—'}</td>
+        <td><span class="badge ${stBadge[s.status]||'bpend'}">${s.status}</span></td>
+        ${isA?`<td style="display:flex;gap:6px;padding:10px 16px">
+          <button class="btn btn-icon btn-sm" onclick="openEditStudent(${s.id})" title="Edit"><i class="ti ti-edit" style="font-size:13px"></i></button>
+          <button class="btn btn-icon btn-sm btn-red" onclick="confirmDelete('student',${s.id},'${s.name.replace(/'/g,"\\'")}')" title="Delete"><i class="ti ti-trash" style="font-size:13px"></i></button>
+        </td>`:''}
+      </tr>`).join('')}
+      ${!students.length?`<tr><td colspan="${isA?5:4}" style="text-align:center;color:#9ca3af;padding:28px">No students enrolled yet. Click "Add Student" to get started.</td></tr>`:''}
+      </tbody>
+    </table></div>
+  </div>`;
+}
+
+function openAddStudent() {
+  editingStudentId = null;
+  $('modal-student-title').textContent = 'Add Student';
+  $('st-name').value = '';
+  $('st-email').value = '';
+  $('st-section').value = '';
+  $('st-status').value = 'Active';
+  openModal('modal-student');
+}
+function openEditStudent(id) {
+  const s = students.find(x=>x.id===id); if(!s) return;
+  editingStudentId = id;
+  $('modal-student-title').textContent = 'Edit Student';
+  $('st-name').value = s.name;
+  $('st-email').value = s.email||'';
+  $('st-section').value = s.section||'';
+  $('st-status').value = s.status;
+  openModal('modal-student');
+}
+
+async function saveStudent() {
+  const name = $('st-name').value.trim();
+  const email = $('st-email').value.trim();
+  const section = $('st-section').value.trim();
+  const status = $('st-status').value;
+
+  if (!name || !email) {
+    alert('Please fill in Name and Email.');
+    return;
+  }
+
+  if (!supabaseClient) {
+    console.error('❌ Supabase client is null.');
+    alert('ERROR: Supabase is not connected. Please refresh the page and check Supabase settings.');
+    return;
+  }
+
+  const parts = name.split(' ').filter(Boolean);
+  const initials = parts.length >= 2
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : name.slice(0, 2).toUpperCase();
+
+  try {
+    if (editingStudentId) {
+      const { data, error } = await supabaseClient
+        .from('users')
+        .update({
+          name,
+          email,
+          section,
+          status,
+          initials
+        })
+        .eq('id', editingStudentId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('✅ Student updated in Supabase:', data);
+      await addSupabaseLog(`Updated student: ${name}`, S.displayName);
+    } else {
+      const { data, error } = await supabaseClient
+        .from('users')
+        .insert({
+          name,
+          email,
+          section,
+          status,
+          role: 'student',
+          initials
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('✅ Student inserted into Supabase:', data);
+      await addSupabaseLog(`Enrolled student: ${name}`, S.displayName);
+    }
+
+    await loadAllDataFromSupabase();
+    closeModal('modal-student');
+    render();
+
+  } catch (error) {
+    console.error('❌ Supabase student save error:', error);
+    alert('DATABASE ERROR:\n' + (error.message || error));
+  }
+}
+
+/* ─── SYSTEM SETTINGS & LOGS ─────────────────────── */
+function renderSettings(body) {
+  if (S.role !== 'admin') {
+    body.innerHTML = accessDenied('ti-lock','Admin Access Required','System settings are only available to administrators.');
+    return;
+  }
+  body.innerHTML = `<div class="card">
+    <div class="card-hdr"><div class="card-title">System Settings &amp; Supabase Connection</div></div>
+    <div style="padding:20px">
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;margin-bottom:18px">
+        <div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:8px">⚡ Supabase Connection Status: <span style="color:${supabaseClient?'#16a34a':'#dc2626'}">${supabaseClient?'Connected to Supabase':'Not Connected to Supabase'}</span></div>
+        <div class="fi-row" style="margin-bottom:8px">
+          <div class="fi" style="margin-bottom:0"><label>Supabase URL</label><input type="text" id="cfg-sb-url" value="${SUPABASE_URL}" placeholder="https://xyz.supabaseClient.co"></div>
+          <div class="fi" style="margin-bottom:0"><label>Supabase Anon Key</label><input type="password" id="cfg-sb-key" value="${SUPABASE_ANON_KEY}" placeholder="eyJhbGci..."></div>
+        </div>
+        <button class="btn btn-primary btn-sm" id="btn-save-supabase" onclick="saveSupabaseConfig()">Save &amp; Reconnect Supabase</button>
+      </div>
+
+      ${[
+        ['examNotifications','Exam Notifications','Enable exam-related notifications.'],
+        ['autoGrading','Automatic Grading','Automatically calculate objective exam scores.'],
+        ['antiCheating','Anti-Cheating Monitoring','Enable basic exam activity monitoring.'],
+        ['resultNotifications','Result Notifications','Enable result notification behavior.']
+      ].map(([key,title,desc],i)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;${i<3?'border-bottom:.5px solid #e2e5ee':''}">
+        <div><div style="font-size:13px;font-weight:600">${title}</div><div style="font-size:11px;color:#9ca3af;margin-top:3px">${desc}</div></div>
+        <input type="checkbox" ${systemSettings[key]?'checked':''} onchange="updateSetting('${key}', this.checked)">
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+async function saveSupabaseConfig() {
+  const url = $('cfg-sb-url').value.trim();
+  const key = $('cfg-sb-key').value.trim();
+  if (!url || !key) { alert('Please enter both Supabase URL and Anon Key.'); return; }
+
+  SUPABASE_URL = url;
+  SUPABASE_ANON_KEY = key;
+  localStorage.setItem('SUPABASE_URL', url);
+  localStorage.setItem('SUPABASE_ANON_KEY', key);
+
+  const btn = $('btn-save-supabase');
+  if (btn) { btn.disabled = true; btn.textContent = 'Connecting...'; }
+
+  const ok = await initSupabase();
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Save & Reconnect Supabase'; }
+
+  if (ok) {
+    alert('✅ Supabase credentials saved AND connected successfully!');
+  } else {
+    alert(
+      '⚠️ Na-save ang credentials, PERO HINDI nag-connect.\n\n' +
+      'Posibleng dahilan:\n' +
+      '1. Mali o truncated ang URL o Anon Key\n' +
+      '2. Naka-pause ang Supabase project mo (free tier)\n' +
+      '3. Wala pang "users" table sa database mo\n' +
+      '4. Naka-block ang Supabase CDN script sa environment na ito\n\n' +
+      'Buksan ang browser console (F12 / Ctrl+Shift+I) para makita ang EXACT error message.'
+    );
+  }
+  render();
+}
+
+async function updateSetting(key, val) {
+  systemSettings[key] = val;
+  if (supabaseClient) {
+    await supabaseClient.from('system_settings').update({ setting_value: val ? 'true' : 'false' }).eq('setting_key', key);
+  }
+}
+
+async function addSupabaseLog(action, user, userId = null) {
+  addLog(action, user);
+  if (supabaseClient) {
+    try {
+      await supabaseClient.from('exam_logs').insert({ action, user_name: user, user_id: userId });
+    } catch(e){}
+  }
+}
+
+function addLog(action, user) {
+  const now = new Date();
+  examLogs.unshift({action, user:user || S.displayName || 'System', date:now.toLocaleString()});
+}
+
+function renderLogs(body) {
+  if (S.role !== 'admin') {
+    body.innerHTML = accessDenied('ti-lock','Admin Access Required','Exam logs are only available to administrators.');
+    return;
+  }
+  body.innerHTML = `<div class="card">
+    <div class="card-hdr"><div class="card-title">Exam &amp; System Logs</div></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Action</th><th>User</th><th>Date &amp; Time</th></tr></thead>
+      <tbody>
+      ${examLogs.map(l=>`<tr><td>${l.action}</td><td>${l.user}</td><td>${l.date}</td></tr>`).join('')}
+      ${!examLogs.length?'<tr><td colspan="3" style="text-align:center;color:#9ca3af;padding:28px">No logs yet.</td></tr>':''}
+      </tbody>
+    </table></div>
+  </div>`;
+}
+
+function accessDenied(icon,title,sub){
+  return `<div class="card"><div class="access-denied">
+    <i class="ti ${icon}"></i>
+    <div class="access-denied-title">${title}</div>
+    <div class="access-denied-sub">${sub}</div>
+  </div></div>`;
+}
+
+/* ══════════════════════════════════════════════════ */
+/*  EXAM CREATION & EDITING                           */
+/* ══════════════════════════════════════════════════ */
+function openCreateExam(){
+  editingExamId=null; questionBlocks=[];
+  $('modal-exam-title').textContent='Create Exam';
+  ['ex-title','ex-desc'].forEach(id=>{$(id).value=''});
+  ['ex-subject','ex-dur','ex-pass'].forEach(id=>{$(id).value=''});
+  if($('ex-start-window')) $('ex-start-window').value='';
+  if($('ex-end-window')) $('ex-end-window').value='';
+  if($('ex-access-codes')) $('ex-access-codes').value='';
+  if($('ex-ip-whitelist')) $('ex-ip-whitelist').value='';
+  $('questions-container').innerHTML='<div style="color:#9ca3af;font-size:12px;text-align:center;padding:16px 0">No questions yet. Click "Add Question" above.</div>';
+  openModal('modal-exam');
+}
+
+function openEditExam(id){
+  const e=exams.find(x=>x.id===id); if(!e) return;
+  editingExamId=id;
+  $('modal-exam-title').textContent='Edit Exam';
+  $('ex-title').value=e.title; $('ex-desc').value=e.desc||'';
+  $('ex-subject').value=e.subject; $('ex-dur').value=e.duration; $('ex-pass').value=e.pass;
+  if($('ex-start-window')) $('ex-start-window').value=e.startWindow||'';
+  if($('ex-end-window')) $('ex-end-window').value=e.endWindow||'';
+  if($('ex-access-codes')) $('ex-access-codes').value=(e.accessCodes&&e.accessCodes.length)?e.accessCodes.join(', '):(e.accessCode||'');
+  if($('ex-ip-whitelist')) $('ex-ip-whitelist').value=(e.ipWhitelist&&e.ipWhitelist.length)?e.ipWhitelist.join(', '):'';
+  questionBlocks=(e.questions||[]).map((q,i)=>({...q,_id:i}));
+  renderQuestionBlocks();
+  openModal('modal-exam');
+}
+
+function generateAccessCodes(){
+  const codes=[];
+  for(let i=0;i<10;i++){
+    codes.push(Math.random().toString(36).substring(2,8).toUpperCase());
+  }
+  if($('ex-access-codes')) $('ex-access-codes').value=codes.join(', ');
+}
+
+function addQuestion(){
+  questionBlocks.push({_id:_qid++,text:'',type:'mc',choices:['','','',''],answer:0});
+  renderQuestionBlocks();
+}
+
+function renderQuestionBlocks(){
+  const c=$('questions-container');
+  if(!questionBlocks.length){
+    c.innerHTML='<div style="color:#9ca3af;font-size:12px;text-align:center;padding:16px 0">No questions yet. Click "Add Question" above.</div>';
+    return;
+  }
+  c.innerHTML=questionBlocks.map((q,i)=>`
+  <div class="q-block" id="qblk-${q._id}">
+    <div class="q-block-hdr">
+      <div class="q-block-num">Question ${i+1}</div>
+      <button class="btn btn-icon btn-sm btn-red" onclick="removeQuestion(${q._id})"><i class="ti ti-trash" style="font-size:12px"></i></button>
+    </div>
+    <div class="fi"><label>Question Text *</label>
+      <textarea oninput="updateQ(${q._id},'text',this.value)" placeholder="Enter question...">${q.text}</textarea>
+    </div>
+    <div class="fi"><label>Type</label>
+      <select onchange="changeQType(${q._id},this.value)">
+        <option value="mc" ${q.type==='mc'?'selected':''}>Multiple Choice</option>
+        <option value="tf" ${q.type==='tf'?'selected':''}>True / False</option>
+        <option value="sa" ${q.type==='sa'?'selected':''}>Short Answer</option>
+      </select>
+    </div>
+    ${q.type==='mc'?renderMCChoices(q):q.type==='tf'?renderTFChoices(q):'<div style="font-size:12px;color:#9ca3af;margin-top:4px">Students will type a short text answer.</div>'}
+  </div>`).join('');
+}
+
+function renderMCChoices(q){
+  return `<div class="fi"><label>Choices &amp; Correct Answer (tick correct)</label>
+  ${q.choices.map((c,ci)=>`<div class="choice-row">
+    <input type="radio" name="ans-${q._id}" ${q.answer===ci?'checked':''} onchange="updateQ(${q._id},'answer',${ci})">
+    <input type="text" value="${esc(c)}" oninput="updateChoice(${q._id},${ci},this.value)" placeholder="Choice ${ci+1}">
+    ${q.choices.length>2?`<button class="btn btn-icon btn-sm" onclick="removeChoice(${q._id},${ci})" style="flex-shrink:0;padding:4px 7px"><i class="ti ti-x" style="font-size:11px"></i></button>`:''}
+  </div>`).join('')}
+  <button class="add-choice-btn" onclick="addChoice(${q._id})"><i class="ti ti-plus" style="font-size:11px"></i> Add Choice</button>
+  </div>`;
+}
+
+function renderTFChoices(q){
+  return `<div class="fi"><label>Correct Answer</label>
+  <div class="choice-row"><input type="radio" name="ans-${q._id}" ${q.answer===0?'checked':''} onchange="updateQ(${q._id},'answer',0)"><input type="text" value="True" readonly style="background:#f9fafb"></div>
+  <div class="choice-row"><input type="radio" name="ans-${q._id}" ${q.answer===1?'checked':''} onchange="updateQ(${q._id},'answer',1)"><input type="text" value="False" readonly style="background:#f9fafb"></div>
+  </div>`;
+}
+
+function updateQ(qid,field,val){ const q=questionBlocks.find(x=>x._id===qid); if(q) q[field]=field==='answer'?parseInt(val):val; }
+function changeQType(qid,type){
+  const q=questionBlocks.find(x=>x._id===qid); if(!q) return;
+  q.type=type; q.answer=0;
+  if(type==='mc') q.choices=['','','',''];
+  else if(type==='tf') q.choices=['True','False'];
+  else q.choices=[];
+  renderQuestionBlocks();
+}
+function addChoice(qid){ const q=questionBlocks.find(x=>x._id===qid); if(q){q.choices.push('');renderQuestionBlocks();} }
+function removeChoice(qid,ci){ const q=questionBlocks.find(x=>x._id===qid); if(!q) return; q.choices.splice(ci,1); if(q.answer>=q.choices.length) q.answer=0; renderQuestionBlocks(); }
+function updateChoice(qid,ci,val){ const q=questionBlocks.find(x=>x._id===qid); if(q) q.choices[ci]=val; }
+function removeQuestion(qid){ questionBlocks=questionBlocks.filter(x=>x._id!==qid); renderQuestionBlocks(); }
+
+async function saveExam(){
+  const title=$('ex-title').value.trim(), subject=$('ex-subject').value;
+  const dur=parseInt($('ex-dur').value), pass=parseInt($('ex-pass').value);
+  if(!title||!subject||!dur||!pass){ alert('Please fill in all required fields.'); return; }
+  const cleanQ=questionBlocks.map(q=>({text:q.text,type:q.type,choices:q.choices,answer:q.answer}));
+
+  const startWindow = $('ex-start-window') ? $('ex-start-window').value : '';
+  const endWindow = $('ex-end-window') ? $('ex-end-window').value : '';
+  const codesRaw = $('ex-access-codes') ? $('ex-access-codes').value.trim() : '';
+  const accessCodes = codesRaw ? codesRaw.split(',').map(c=>c.trim().toUpperCase()).filter(Boolean) : [];
+  const ipRaw = $('ex-ip-whitelist') ? $('ex-ip-whitelist').value.trim() : '';
+  const ipWhitelist = ipRaw ? ipRaw.split(',').map(i=>i.trim()).filter(Boolean) : [];
+
+  if (supabaseClient) {
+    try {
+      let examId = editingExamId;
+      const securityPayload = {
+        start_window: startWindow || null,
+        end_window: endWindow || null,
+        access_codes: accessCodes.length ? accessCodes : null,
+        ip_whitelist: ipWhitelist.length ? ipWhitelist : null
+      };
+      if (examId) {
+        const { error: updErr } = await supabaseClient.from('exams').update({
+          title, subject, description: $('ex-desc').value.trim(), duration: dur, pass_score: pass, ...securityPayload
+        }).eq('id', examId);
+        if (updErr) {
+          console.warn('⚠️ Update with security fields failed, retrying without them:', updErr.message);
+          await supabaseClient.from('exams').update({
+            title, subject, description: $('ex-desc').value.trim(), duration: dur, pass_score: pass
+          }).eq('id', examId);
+        }
+        await supabaseClient.from('questions').delete().eq('exam_id', examId);
+      } else {
+        let newExam;
+        const { data: insData, error: insErr } = await supabaseClient.from('exams').insert({
+          title, subject, description: $('ex-desc').value.trim(), duration: dur, pass_score: pass, created_by: S.userId, ...securityPayload
+        }).select().single();
+        if (insErr) {
+          console.warn('⚠️ Insert with security fields failed, retrying without them:', insErr.message);
+          const res = await supabaseClient.from('exams').insert({
+            title, subject, description: $('ex-desc').value.trim(), duration: dur, pass_score: pass, created_by: S.userId
+          }).select().single();
+          newExam = res.data;
+        } else {
+          newExam = insData;
+        }
+        examId = newExam.id;
+      }
+
+      // Insert questions and choices
+      for (let i = 0; i < cleanQ.length; i++) {
+        const q = cleanQ[i];
+        const { data: newQ } = await supabaseClient.from('questions').insert({
+          exam_id: examId,
+          question_text: q.text,
+          type: q.type,
+          correct_answer_index: q.type !== 'sa' ? q.answer : null,
+          correct_answer_text: q.type === 'sa' ? q.answer : null,
+          order_index: i + 1
+        }).select().single();
+
+        if (q.choices && q.choices.length) {
+          const choicesPayload = q.choices.map((c, cIdx) => ({
+            question_id: newQ.id,
+            choice_text: c,
+            choice_index: cIdx,
+            is_correct: (cIdx === q.answer)
+          }));
+          await supabaseClient.from('question_choices').insert(choicesPayload);
+        }
+      }
+
+      await addSupabaseLog(`${editingExamId?'Updated':'Created'} exam: ${title}`, S.displayName, S.userId);
+      await loadAllDataFromSupabase();
+    } catch(err) {
+      console.error('Error saving exam in Supabase:', err);
+    }
+  } else {
+    // Offline fallback
+    if(editingExamId){
+      const e=exams.find(x=>x.id===editingExamId);
+      if(e){
+        e.title=title;e.subject=subject;e.desc=$('ex-desc').value.trim();e.duration=dur;e.pass=pass;e.questions=cleanQ;
+        e.startWindow=startWindow||null; e.endWindow=endWindow||null;
+        e.accessCodes=accessCodes.length?accessCodes:null;
+        if(!e.usedCodes) e.usedCodes=[];
+        e.ipWhitelist=ipWhitelist.length?ipWhitelist:null;
+      }
+    } else {
+      exams.push({id:nextExamId++,title,subject,desc:$('ex-desc').value.trim(),duration:dur,pass,attempts:0,questions:cleanQ,
+        startWindow:startWindow||null, endWindow:endWindow||null,
+        accessCodes:accessCodes.length?accessCodes:null, usedCodes:[],
+        ipWhitelist:ipWhitelist.length?ipWhitelist:null});
+    }
+  }
+  closeModal('modal-exam'); render();
+}
+
+/* ══════════════════════════════════════════════════ */
+/*  QUESTION BANK MODAL                               */
+/* ══════════════════════════════════════════════════ */
+function openAddQB(){
+  qbEditId=null; $('modal-qbank-title').textContent='Add Question';
+  ['qb-text'].forEach(id=>{$(id).value=''});
+  ['qb-subject','qb-type','qb-diff'].forEach(id=>{$(id).value=''});
+  $('qb-type-fields').innerHTML='';
+  openModal('modal-qbank');
+}
+
+function openEditQB(id){
+  const q=qbank.find(x=>x.id===id); if(!q) return;
+  qbEditId=id; $('modal-qbank-title').textContent='Edit Question';
+  $('qb-text').value=q.text; $('qb-subject').value=q.subject;
+  $('qb-type').value=q.type; $('qb-diff').value=q.diff;
+  renderQBTypeFields(q); openModal('modal-qbank');
+}
+
+function renderQBTypeFields(existing){
+  const type=$('qb-type').value, c=$('qb-type-fields');
+  if(type==='mc'){
+    const chs=existing?existing.choices:['','','',''], ans=existing?existing.answer:0;
+    c.innerHTML=`<div class="fi"><label>Choices &amp; Correct Answer</label>
+    ${chs.map((ch,i)=>`<div class="choice-row">
+      <input type="radio" name="qb-ans" ${ans===i?'checked':''} value="${i}">
+      <input type="text" id="qbc-${i}" value="${esc(ch)}" placeholder="Choice ${i+1}">
+    </div>`).join('')}
+    </div>`;
+  } else if(type==='tf'){
+    const ans=existing?existing.answer:0;
+    c.innerHTML=`<div class="fi"><label>Correct Answer</label>
+    <div class="choice-row"><input type="radio" name="qb-ans" value="0" ${ans===0?'checked':''}><input type="text" value="True" readonly style="background:#f9fafb"></div>
+    <div class="choice-row"><input type="radio" name="qb-ans" value="1" ${ans===1?'checked':''}><input type="text" value="False" readonly style="background:#f9fafb"></div>
+    </div>`;
+  } else if(type==='sa'){
+    c.innerHTML=`<div class="fi"><label>Model Answer (optional)</label><input type="text" id="qb-sa-ans" value="${existing&&existing.answer?existing.answer:''}" placeholder="e.g. x = 4"></div>`;
+  } else { c.innerHTML=''; }
+}
+
+async function saveQBQuestion(){
+  const text=$('qb-text').value.trim(), subject=$('qb-subject').value;
+  const type=$('qb-type').value, diff=$('qb-diff').value;
+  if(!text||!subject||!type||!diff){ alert('Please fill in all required fields.'); return; }
+  let choices=[],answer=0;
+  if(type==='mc'){
+    for(let i=0;i<4;i++){const el=$('qbc-'+i);if(el)choices.push(el.value);}
+    const r=document.querySelector('input[name="qb-ans"]:checked'); if(r) answer=parseInt(r.value);
+  } else if(type==='tf'){
+    choices=['True','False'];
+    const r=document.querySelector('input[name="qb-ans"]:checked'); if(r) answer=parseInt(r.value);
+  } else if(type==='sa'){
+    const sa=$('qb-sa-ans'); answer=sa?sa.value.trim():'';
+  }
+
+  if (supabaseClient) {
+    try {
+      let qbId = qbEditId;
+      if (qbId) {
+        await supabaseClient.from('question_bank').update({
+          question_text: text, subject, type, difficulty: diff,
+          correct_answer_index: type !== 'sa' ? answer : null,
+          correct_answer_text: type === 'sa' ? answer : null
+        }).eq('id', qbId);
+        await supabaseClient.from('question_bank_choices').delete().eq('qbank_id', qbId);
+      } else {
+        const { data: newQB } = await supabaseClient.from('question_bank').insert({
+          question_text: text, subject, type, difficulty: diff,
+          correct_answer_index: type !== 'sa' ? answer : null,
+          correct_answer_text: type === 'sa' ? answer : null,
+          created_by: S.userId
+        }).select().single();
+        qbId = newQB.id;
+      }
+
+      if (choices && choices.length && (type === 'mc' || type === 'tf')) {
+        const cPayload = choices.map((ch, idx) => ({
+          qbank_id: qbId,
+          choice_text: ch,
+          choice_index: idx,
+          is_correct: (idx === answer)
+        }));
+        await supabaseClient.from('question_bank_choices').insert(cPayload);
+      }
+
+      await addSupabaseLog(`${qbEditId?'Updated':'Added'} question in bank: ${text.slice(0,35)}`, S.displayName);
+      await loadAllDataFromSupabase();
+    } catch(err) {
+      console.error('Error saving question bank in Supabase:', err);
+    }
+  } else {
+    if(qbEditId){ const q=qbank.find(x=>x.id===qbEditId); if(q){q.text=text;q.subject=subject;q.type=type;q.diff=diff;q.choices=choices;q.answer=answer;} }
+    else { qbank.push({id:nextQBId++,text,subject,type,diff,choices,answer}); }
+  }
+
+  closeModal('modal-qbank'); render();
+}
+
+/* ══════════════════════════════════════════════════ */
+/*  DELETE CONFIRMATION                               */
+/* ══════════════════════════════════════════════════ */
+function confirmDelete(kind,id,label){
+  $('confirm-msg').textContent=`Are you sure you want to delete "${label}"? This cannot be undone.`;
+  const btn=$('confirm-ok-btn');
+  btn.onclick=async()=>{
+    if (supabaseClient) {
+      if(kind==='exam') await supabaseClient.from('exams').delete().eq('id', id);
+      if(kind==='qb') await supabaseClient.from('question_bank').delete().eq('id', id);
+      if(kind==='student') await supabaseClient.from('users').delete().eq('id', id);
+      await addSupabaseLog(`Deleted ${kind}: ${label}`, S.displayName);
+      await loadAllDataFromSupabase();
+    } else {
+      if(kind==='exam')    exams=exams.filter(x=>x.id!==id);
+      if(kind==='qb')      qbank=qbank.filter(x=>x.id!==id);
+      if(kind==='student') students=students.filter(x=>x.id!==id);
+      addLog('Deleted '+kind+': '+label, S.displayName);
+    }
+    closeModal('modal-confirm');
+    render();
+  };
+  openModal('modal-confirm');
+}
+
+function openModal(id){$(id).classList.add('open')}
+function closeModal(id){$(id).classList.remove('open')}
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open')}));
+
+/* ══════════════════════════════════════════════════ */
+/*  ANTI-CHEATING / RANDOMIZATION / ACCESS CONTROL    */
+/* ══════════════════════════════════════════════════ */
+function shuffleArray(arr){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function prepareRandomizedExam(e){
+  let qs = shuffleArray(e.questions||[]);
+  qs = qs.map(q=>{
+    if(!q.choices || !q.choices.length) return {...q};
+    const order = shuffleArray(q.choices.map((c,i)=>i));
+    const newChoices = order.map(i=>q.choices[i]);
+    const newAnswer = order.indexOf(q.answer);
+    return {...q, choices:newChoices, answer:newAnswer};
+  });
+  return {...e, questions:qs};
+}
+
+async function checkIpAllowed(e){
+  if(!e.ipWhitelist || !e.ipWhitelist.length) return true;
+  try {
+    const res = await fetch('https://api.ipify.org?format=json');
+    const data = await res.json();
+    return e.ipWhitelist.includes(data.ip);
+  } catch(err){
+    console.warn('IP check failed (network blocked or offline) — allowing access by default:', err);
+    return true;
+  }
+}
+
+let examViolations = 0;
+const MAX_VIOLATIONS = 3;
+
+function attachAntiCheatListeners(){
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  document.addEventListener('fullscreenchange', handleFullscreenChange);
+}
+function detachAntiCheatListeners(){
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
+  document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  const el = $('violation-banner');
+  if(el) el.remove();
+}
+function handleVisibilityChange(){
+  if(document.hidden && $('exam-screen').style.display==='block'){
+    registerViolation('Switched tabs or minimized the window');
+  }
+}
+function handleFullscreenChange(){
+  if(!document.fullscreenElement && $('exam-screen').style.display==='block'){
+    registerViolation('Exited fullscreen mode');
+  }
+}
+function registerViolation(reason){
+  examViolations++;
+  addSupabaseLog(`Anti-cheat warning ${examViolations}/${MAX_VIOLATIONS} (${reason})`, S.displayName, S.userId);
+  showViolationBanner(reason);
+  if(examViolations>=MAX_VIOLATIONS){
+    alert('Maximum number of activity warnings reached. Your exam will be submitted automatically.');
+    submitExam();
+  }
+}
+function showViolationBanner(reason){
+  let el=$('violation-banner');
+  if(!el){
+    el=document.createElement('div');
+    el.id='violation-banner';
+    el.style.cssText='position:fixed;top:0;left:0;right:0;background:#ef4444;color:#fff;padding:10px 20px;text-align:center;font-size:13px;font-weight:600;z-index:2000';
+    document.body.appendChild(el);
+  }
+  el.textContent=`⚠ Warning ${examViolations}/${MAX_VIOLATIONS}: ${reason}. Repeated violations will auto-submit your exam.`;
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>{ if(el&&el.parentNode) el.remove(); },5000);
+}
+function requestExamFullscreen(){
+  const el=document.documentElement;
+  const req=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;
+  if(req){ req.call(el).catch(()=>{}); }
+}
+function exitFullscreenIfActive(){
+  if(document.fullscreenElement){
+    (document.exitFullscreen||function(){}).call(document).catch(()=>{});
+  }
+}
+
+/* ══════════════════════════════════════════════════ */
+/*  EXAM TAKING                                       */
+/* ══════════════════════════════════════════════════ */
+let pendingExamId = null;
+
+function startExam(id){
+  if (S.role === 'teacher') { alert('Teachers manage exams and review class performance. Student accounts take the exams.'); return; }
+  const e=exams.find(x=>x.id===id); if(!e) return;
+
+  const now = new Date();
+  if(e.startWindow){
+    const sw = new Date(e.startWindow);
+    if(now < sw){ alert('This exam is not open yet. It becomes available on '+sw.toLocaleString()+'.'); return; }
+  }
+  if(e.endWindow){
+    const ew = new Date(e.endWindow);
+    if(now > ew){ alert('This exam window has closed. It was available until '+ew.toLocaleString()+'.'); return; }
+  }
+
+  const needsCode = e.accessCode || (e.accessCodes && e.accessCodes.length);
+  if(needsCode){
+    pendingExamId = id;
+    $('access-code-input').value='';
+    $('access-code-err').style.display='none';
+    openModal('modal-access');
+    setTimeout(()=>{ $('access-code-input').focus(); },100);
+    return;
+  }
+
+  proceedStartExam(e);
+}
+
+async function verifyAccessCode(){
+  const e=exams.find(x=>x.id===pendingExamId); if(!e) return;
+  const entered=$('access-code-input').value.trim().toUpperCase();
+  let valid=false;
+
+  if(e.accessCodes && e.accessCodes.length){
+    e.usedCodes = e.usedCodes||[];
+    const match = e.accessCodes.find(c=>c.toUpperCase()===entered);
+    const alreadyUsed = e.usedCodes.map(c=>c.toUpperCase()).includes(entered);
+    if(match && !alreadyUsed){
+      valid=true;
+      e.usedCodes.push(entered);
+      if(supabaseClient){
+        try{
+          await supabaseClient.from('exams').update({ used_codes: e.usedCodes }).eq('id', e.id);
+        }catch(err){}
+      }
+    }
+  } else if(e.accessCode){
+    valid = (entered === e.accessCode.toUpperCase());
+  }
+
+  if(!entered || !valid){
+    $('access-code-err').style.display='block';
+    return;
+  }
+
+  closeModal('modal-access');
+  proceedStartExam(e);
+}
+
+async function proceedStartExam(e){
+  const ipOk = await checkIpAllowed(e);
+  if(!ipOk){
+    alert('This exam can only be accessed from an approved network or location.');
+    return;
+  }
+
+  activeExam=prepareRandomizedExam(e);
+  studentAnswers={};
+  examViolations=0;
+  addLog('Started exam: '+e.title, S.displayName);
+  timeLeft=e.duration*60;
+  $('et-title').textContent=e.title;
+  $('et-student').textContent='Student: '+S.displayName;
+  renderExamScreen();
+  $('exam-screen').style.display='block';
+  requestExamFullscreen();
+  attachAntiCheatListeners();
+  clearInterval(timerInterval);
+  timerInterval=setInterval(tickTimer,1000);
+  updateTimerDisplay();
+}
+
+function tickTimer(){ timeLeft--; updateTimerDisplay(); if(timeLeft<=0){clearInterval(timerInterval);submitExam();} }
+function updateTimerDisplay(){
+  const m=Math.floor(timeLeft/60),s=timeLeft%60;
+  $('timer-display').textContent=pad(m)+':'+pad(s);
+  const pct=((activeExam.duration*60-timeLeft)/(activeExam.duration*60))*100;
+  $('exam-prog').style.width=pct+'%';
+  $('timer-display').style.color=timeLeft<=60?'#ef4444':'#7fa4f0';
+}
+
+function renderExamScreen(){
+  const qs=activeExam.questions||[];
+  $('exam-content').innerHTML=qs.map((q,i)=>`
+  <div class="exam-q-card">
+    <div class="exam-q-num">Question ${i+1} of ${qs.length}</div>
+    <div class="exam-q-text">${q.text}</div>
+    ${q.type==='sa'
+      ? `<input type="text" class="form-input" id="sa-${i}" oninput="studentAnswers[${i}]=this.value" placeholder="Type your answer here..." style="margin-top:4px">`
+      : (q.choices||[]).map((c,ci)=>`
+      <div class="choice-opt" onclick="selectChoice(${i},${ci},this)">
+        <input type="radio" name="q${i}" value="${ci}" onchange="studentAnswers[${i}]=${ci}">
+        <label>${c}</label>
+      </div>`).join('')
+    }
+  </div>`).join('')+`
+  <div class="exam-nav">
+    <div style="font-size:12px;color:#9ca3af">${qs.length} question${qs.length!==1?'s':''} total</div>
+    <button class="exam-submit-btn" onclick="submitExam()">Submit Exam</button>
+  </div>`;
+}
+
+function selectChoice(qi,ci,el){
+  document.querySelectorAll(`input[name="q${qi}"]`).forEach(r=>r.checked=false);
+  document.querySelectorAll('.exam-q-card')[qi].querySelectorAll('.choice-opt').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  el.querySelector('input[type=radio]').checked=true;
+  studentAnswers[qi]=ci;
+}
+
+async function submitExam(){
+  clearInterval(timerInterval);
+  detachAntiCheatListeners();
+  exitFullscreenIfActive();
+  const qs=activeExam.questions||[];
+  let correct=0;
+  qs.forEach((q,i)=>{
+    if(q.type==='sa'){if(studentAnswers[i]!==undefined&&studentAnswers[i].toString().trim()!=='')correct++;}
+    else if(studentAnswers[i]===q.answer) correct++;
+  });
+  const pct=qs.length?Math.round(correct/qs.length*100):0;
+  const passed=pct>=activeExam.pass;
+
+  if (supabaseClient) {
+    try {
+      const { data: resObj } = await supabaseClient.from('exam_results').insert({
+        exam_id: activeExam.id,
+        user_id: S.userId,
+        student_name: S.displayName,
+        exam_title: activeExam.title,
+        total_questions: qs.length,
+        correct_answers: correct,
+        score_percentage: pct,
+        passed: passed
+      }).select().single();
+
+      if (resObj && qs.length) {
+        const details = qs.map((q, idx) => ({
+          result_id: resObj.id,
+          question_id: q.id,
+          selected_choice_index: q.type !== 'sa' ? studentAnswers[idx] : null,
+          answer_text: q.type === 'sa' ? studentAnswers[idx] : null,
+          is_correct: (q.type === 'sa' ? (studentAnswers[idx] && studentAnswers[idx].trim()!=='') : studentAnswers[idx] === q.answer)
+        }));
+        await supabaseClient.from('exam_attempt_answers').insert(details);
+      }
+
+      await supabaseClient.from('exams').update({ attempts_count: (activeExam.attempts || 0) + 1 }).eq('id', activeExam.id);
+      await addSupabaseLog(`Submitted exam: ${activeExam.title} (${pct}%)`, S.displayName, S.userId);
+      await loadAllDataFromSupabase();
+    } catch(err) {
+      console.error('Error submitting exam to Supabase:', err);
+    }
+  } else {
+    activeExam.attempts=(activeExam.attempts||0)+1;
+    const today=new Date();
+    const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    results.unshift({name:S.displayName,exam:activeExam.title,score:pct,pass:passed,date:months[today.getMonth()]+' '+today.getDate()+', '+today.getFullYear()});
+  }
+
+  $('exam-screen').style.display='none';
+  showResultScreen(pct,passed,correct,qs.length);
+}
+
+function showResultScreen(pct,passed,correct,total){
+  $('r-icon').textContent=passed?'🎉':'😔';
+  $('r-title').textContent=passed?'Congratulations, '+S.displayName+'!':'Keep Practicing, '+S.displayName+'!';
+  $('r-sub').textContent=passed?'You passed the exam!':'You did not meet the passing score this time.';
+  $('r-score').textContent=pct+'%';
+  $('r-score').className='result-score '+(passed?'pass':'fail');
+  $('r-status').textContent=passed?'Passed':'Failed';
+  $('r-status').className='result-status '+(passed?'pass':'fail');
+  $('r-details').innerHTML=`
+    <div class="rd-item"><div class="rd-lbl">Correct Answers</div><div class="rd-val">${correct} / ${total}</div></div>
+    <div class="rd-item"><div class="rd-lbl">Passing Score</div><div class="rd-val">${activeExam.pass}%</div></div>
+    <div class="rd-item"><div class="rd-lbl">Your Score</div><div class="rd-val">${pct}%</div></div>
+    <div class="rd-item"><div class="rd-lbl">Result</div><div class="rd-val" style="color:${passed?'#1d9e75':'#ef4444'}">${passed?'Passed ✓':'Failed ✗'}</div></div>`;
+  $('result-screen').style.display='block';
+}
+
+function closeResult(){ $('result-screen').style.display='none'; nav('take'); }
+
+/* ─── UTILS ──────────────────────────────────────── */
+function $(id){return document.getElementById(id)}
+function pad(n){return String(n).padStart(2,'0')}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function escQ(s){return String(s||'').replace(/'/g,"\\'")}
+
+/* Enter key support */
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter') return;
+  if($('admin-login-page').style.display==='flex') doAdminLogin();
+  if($('student-login-page').style.display==='flex') doStudentLogin();
+  if($('teacher-login-page').style.display==='flex') doTeacherLogin();
+  if($('modal-access').classList.contains('open')) verifyAccessCode();
+});
+
+</script>
+</body>
+</html>
